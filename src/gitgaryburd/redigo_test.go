@@ -1,17 +1,36 @@
 package gitgaryburd
 
 import (
+	"fmt"
 	"log"
 	"testing"
+
+	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
 
+var (
+	RedisClient *redis.Pool
+)
+
 func TestRedigo(t *testing.T) {
-	c, err := redis.Dial("tcp", "127.0.0.1:6333")
-	if err != nil {
-		t.Fatal(err.Error())
+	RedisClient = &redis.Pool{
+		MaxIdle:     100,
+		MaxActive:   1024,
+		IdleTimeout: 180 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", "127.0.0.1"+":"+"6333")
+			if err != nil {
+				return nil, err
+			}
+			// 选择db
+			//c.Do("SELECT", REDIS_DB)  默认 0
+			return c, nil
+		},
 	}
+
+	c := RedisClient.Get()
 	defer c.Close()
 
 	v, err := c.Do("SET", "age", 20)
@@ -49,4 +68,43 @@ func TestRedigo(t *testing.T) {
 	// time.Sleep(time.Second * 4)
 	// rc, _ := c.Receive()
 	//log.Println("Receive redis reply:", rc)
+
+	/*redis 订阅*/
+	go subscribe()
+	go subscribe()
+	go subscribe()
+
+	for {
+		var s string
+		s = time.Now().String()
+		_, err := c.Do("PUBLISH", "chat", s)
+		if err != nil {
+			fmt.Println("pub err: ", err)
+			return
+		}
+		time.Sleep(time.Second * 5)
+	}
+
+}
+
+func subscribe() {
+	c := RedisClient.Get()
+	psc := redis.PubSubConn{c}
+	defer func() {
+		c.Close()
+		psc.Unsubscribe("chat")
+	}()
+
+	psc.Subscribe("chat")
+	for {
+		switch v := psc.Receive().(type) {
+		case redis.Message:
+			fmt.Printf("%s: message: %s\n", v.Channel, v.Data)
+		case redis.Subscription:
+			fmt.Printf("%s: %s %d\n", v.Channel, v.Kind, v.Count)
+		case error:
+			fmt.Println(v)
+			return
+		}
+	}
 }
