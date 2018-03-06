@@ -30,19 +30,21 @@ func (srv *tcpExserver) OnReceive(c *conn.Connector, d conn.TcpData) bool {
 func (srv *tcpExserver) OnClose(c *conn.Connector) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Println(err)
+			log.Println("tcpExserver OnClose err",err)
 		}
 	}()
 	key := c.RemoteAddress
 	node, isEx := srv.BizManager.GetOk(key)
-	log.Println("OnClose:", key, " ManageExists:", isEx, node)
+	log.Println("OnClose First:", key, " ManageExists:", isEx)
 	//node.(*TcpBizNode).Disposed()
+	
 	if tcpnode, isNode := node.(*TcpBizNode); isNode {
 		tcpnode.Disposed() //异常
 	}
 	srv.BizManager.Delete(key)
 	_, isEx = srv.BizManager.GetOk(key)
-	log.Println("OnClose:", key, " ManageExists:", isEx)
+	log.Println("OnClose Second:", key, " ManageExists:", isEx)
+	
 }
 
 type TcpExClient struct {
@@ -50,6 +52,7 @@ type TcpExClient struct {
 }
 
 func (cli *TcpExClient) OnConnect(c *conn.Connector) bool {
+	log.Println("client On connect",c.RemoteAddress)
 	return true
 }
 func (cli *TcpExClient) OnReceive(c *conn.Connector, d conn.TcpData) bool {

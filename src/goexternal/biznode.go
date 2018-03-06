@@ -46,8 +46,10 @@ func (node *TcpBizNode) GetKey() string {
 //关闭释放
 func (node *TcpBizNode) Disposed() {
 	node.mutex.Lock()
-	node.Src.Close()
-	//node.Dst.Close()
+	if node.Src.IsConneted{
+		node.Src.Close()
+	}
+	node.Dst.Close()
 	node.mutex.Unlock()
 }
 
