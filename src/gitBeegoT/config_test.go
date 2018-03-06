@@ -65,3 +65,60 @@ func TestXmlConfig(t *testing.T) {
 	}
 	//log.Println(env.Items())
 }
+
+/*
+	读取json配置
+*/
+func TestJsonConfig(t *testing.T) {
+	var (
+		jsonstr = `{
+		"Name":"tiptok",
+		"Adult":true,
+		"age":22,
+		"Course":"C#;Go"
+	}`
+	)
+
+	cf, _ := os.Create("param.json")
+	cf.WriteString(jsonstr)
+
+	cf.Close()
+
+	jsonConfig, _ := config.NewConfig("json", "param.json")
+	defer os.Remove("param.json")
+	Name := jsonConfig.String("Name")
+	IsAdult, _ := jsonConfig.Bool("Adult")
+	Age, _ := jsonConfig.Int("age")
+	//数组
+	course := jsonConfig.Strings("Course")
+	log.Println(Name, IsAdult, Age, course)
+	t.Fatal("xx")
+}
+
+/*
+	读取ini配置
+*/
+func TestIniConfig(t *testing.T) {
+	inicontext := `
+	;comment one
+	#comment two
+	Name = tiptok
+	Adult = true
+	age = 22
+	Course = C#;Go
+	`
+	cf, _ := os.Create("param.conf")
+	cf.WriteString(inicontext)
+
+	cf.Close()
+
+	jsonConfig, _ := config.NewConfig("ini", "param.conf")
+	defer os.Remove("param.conf")
+	Name := jsonConfig.String("Name")
+	IsAdult, _ := jsonConfig.Bool("Adult")
+	Age, _ := jsonConfig.Int("age")
+	//数组
+	course := jsonConfig.Strings("Course")
+	log.Println(Name, IsAdult, Age, course)
+	t.Fatal("xx")
+}
