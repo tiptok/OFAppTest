@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"os"
+
 	"github.com/astaxie/beego/config"
 	_ "github.com/astaxie/beego/config/xml"
 )
@@ -18,7 +20,21 @@ import (
 	3.节点改名 data -> config
 */
 func TestParamDiff(t *testing.T) {
-	pOldConfig, err := config.NewConfig("xml", "param.xml")
+	//更新配置项到临时文件 paramt.xml paramNt.xml
+	dataO, _ := ioutil.ReadFile("param.xml")
+	sdataO := strings.Replace(string(dataO), "<Data>", "<config>", 1)
+	sdataO = strings.Replace(sdataO, "</Data>", "</config>", 1)
+	ioutil.WriteFile("paramt.xml", []byte(sdataO), 666)
+	defer os.Remove("paramt.xml")
+
+	dataN, _ := ioutil.ReadFile("paramN.xml")
+	sdataN := strings.Replace(string(dataN), "<Data>", "<config>", 1)
+	sdataN = strings.Replace(sdataN, "</Data>", "</config>", 1)
+	ioutil.WriteFile("paramNt.xml", []byte(sdataN), 666)
+	defer os.Remove("paramNt.xml")
+
+	//读取配置
+	pOldConfig, err := config.NewConfig("xml", "paramt.xml")
 	if err != nil {
 		log.Println("Read param.xml Error.", err)
 		return
@@ -28,7 +44,7 @@ func TestParamDiff(t *testing.T) {
 		log.Println("GetSection param.xml Error.", err)
 		return
 	}
-	pNewConfig, err := config.NewConfig("xml", "paramN.xml")
+	pNewConfig, err := config.NewConfig("xml", "paramNt.xml")
 	if err != nil {
 		log.Println("Read paramN.xml Error.", err)
 	}
@@ -53,5 +69,7 @@ func TestParamDiff(t *testing.T) {
 	}
 	log.Println("**********************更新配置参数****************")
 	log.Println(sData)
+	sData = strings.Replace(sData, "<config>", "<Data>", 1)
+	sData = strings.Replace(sData, "</config>", "</Data>", 1)
 	ioutil.WriteFile("paramN.xml", []byte(sData), 666)
 }
