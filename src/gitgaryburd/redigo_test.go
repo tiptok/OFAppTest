@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	/*连接池*/
 	RedisClient *redis.Pool
 )
 

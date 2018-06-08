@@ -34,6 +34,6 @@ func TestBinary(t *testing.T) {
 	//binary.Reader
 	//binary.Writer
 
-	//binary.Buffer
+	binary.Buffer
 	t.Log("end")
 }

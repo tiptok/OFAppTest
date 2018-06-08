@@ -74,7 +74,8 @@ func TestWaitGroup(t *testing.T) {
 
 func ProcessWG(wg *sync.WaitGroup, i int) {
 	fmt.Printf("process :%d is on\n", i)
-	if i != 9 {
-		wg.Done()
-	}
+	// if i != 9 {
+	// 	wg.Done()
+	// }
+	wg.Done() //阻塞直到所有的 
 }
