@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Data>
+  <param>
+    <!--服务名-->
+    <ServiceName>TopNAS</ServiceName>
+    <!--服务显示名称-->
+    <ServiceDescription>Top7接入服务</ServiceDescription>
+	<!--授权码-->
+    <AuthCode>g5PFiyT8xPWoJr46PMCgJasHFhO1WrIYIkOVkjSnk5D2DT/FhsIFOWhnvpyJtnwPqT8qUmBn/xMlrSu3n+gidaofTVaXMO2sf/w4FMO+eUkqmeuk2cUmCs/lF0nKJ84Zh2EwrSuiGQSEBlI8F0dJ5jxaUnaWfgdj7V/RpQZZ9E0=</AuthCode>
+    <!--数据库连接字符串-->
+    <ConnectionString>server=192.168.3.87;uid=sa;pwd=top@db123;database=TopDB;Connect Timeout=120;</ConnectionString>
+    <!--分发监听端口（用于业务数据分发）9996   87 808:9990-->
+    <BizPort>9990</BizPort>
+    <!--终端监听端口（用于接收TOP6通讯服务器/JTB808终端等的数据）9099-->
+    <TermPort>9927</TermPort>
+    <!--接入终端协议类型(部标终端:JTB808，TOP6通讯:TOP6COMM)-->
+    <TermProtocol>TOP6COMM</TermProtocol>
+    <!--通讯服务器IP地址(接入终端类型TOP6COMM时必填 用于下发指令)-->
+    <CommServerIP>JTB808</CommServerIP>
+    <!--日志保存路径-->
+    <LogPath>D:\Logs\NasLog</LogPath>
+    <!--日志保存天数-->
+    <LogSaveDays>7</LogSaveDays>
+    <!--日志级别(Error = 0, Warning = 1, Info = 2, Debug = 3)-->
+    <LogLevel>3</LogLevel>
+    <!--缓存文件路径-->
+    <CachePath>D:\Logs\NasLog\TopNasCacheCCCCC</CachePath>	
+    <!--队列最大缓存报文条数-->
+    <MaxCacheCount>10000</MaxCacheCount>  
+    <!--终端基本信息缓存时间间隔 单位：秒-->
+    <TermCacheSpan>60</TermCacheSpan>
+    <!--功能设置-->
+    <!--808协议注册是否允许重复注册（1允许重复注册，0 不允许）-->
+    <EnableRepeatRegister>1</EnableRepeatRegister>
+    <!--808协议注册是否验证车牌号（1验证车牌，0不验证）-->
+    <CheckPlateNum>0</CheckPlateNum>
+    <!--808协议注册是否验证车牌颜色（1验证车牌，0不验证）-->
+    <CheckPlateColor>0</CheckPlateColor>
+    <!--808协议注册是否验证终端ID（1验证车牌，0不验证）-->
+    <CheckTerminalId>0</CheckTerminalId>
+    <!--是否开启平台报警分析   1：开启  0：关闭-->
+    <IsOpenPlatAlarmAnalysis>1</IsOpenPlatAlarmAnalysis>
+    <!--是否开启终端报警分析   1：开启  0：关闭-->
+    <IsOpenTermAlarmAnalysis>1</IsOpenTermAlarmAnalysis>
+    <!--是否开启每日第一条油耗数据缓存   1：开启  0：关闭-->
+    <IsOpenOilDayFirstData>0</IsOpenOilDayFirstData>
+    <!--是否开启驾驶员分析    1：开启  0：关闭-->
+    <IsOpenDriverAnalysis>1</IsOpenDriverAnalysis>
+    <!--是否开启外设数据分析   1：开启  0：关闭-->
+    <IsOpenDevDataAnalysis>1</IsOpenDevDataAnalysis>
+    <!--是否开启当前位置分析或缓存   1：开启  0：关闭-->
+    <IsOpenCurPosAnalysis>0</IsOpenCurPosAnalysis>
+    <!--是否开启发送报警提醒给驾驶员   1：开启  0：关闭-->
+    <IsOpenAlarmAlertToDriver>1</IsOpenAlarmAlertToDriver>
+    <!--是否开启偏离路线分析  1：开启  0：关闭-->
+    <IsOpenPathAlarmAnalysis>0</IsOpenPathAlarmAnalysis>
+    <!--是否开启配置信息缓存  1：开启  0：关闭-->
+    <IsOpenConfigCache>0</IsOpenConfigCache>
+    <!--是否开启设置车辆限制速度  1：开启  0：关闭（位置报文）-->
+    <IsOpenSetLimitSpeed>0</IsOpenSetLimitSpeed>
+    <!--是否开启进出区域分析 1：开启  0：关闭-->
+    <IsOpenInOutRegionAnalysis>1</IsOpenInOutRegionAnalysis>
+    <!--是否开启进出路线分析 1：开启  0：关闭-->
+    <IsOpenInOutPathAnalysis>1</IsOpenInOutPathAnalysis>
+    <!--是否开启车辆禁行分析 1：开启  0：关闭-->
+    <IsOpenCarBanAlarm>0</IsOpenCarBanAlarm>
+    <!--是否开启趟次分析（艾柯斯 1：开启  0：关闭-->
+    <IsOpenTransGoodsAnalysis>0</IsOpenTransGoodsAnalysis>
+    <!--是否不在规定路线上行驶分析 1：开启  0：关闭-->
+    <IsOpenInPlanLineAnalysis>0</IsOpenInPlanLineAnalysis>
+    <!--是否开启屏蔽终端报警   1：开启  0：关闭  默认关闭(可上报的报警为需要终端分析报警位 AlarmFlag配置)-->
+    <IsOpenShieldTermAlarm>0</IsOpenShieldTermAlarm>
+    <!--是否开启屏蔽报警状态位当车辆停车   1：开启  0：关闭  默认关闭-->
+    <IsOpenSAFWhenVehicleStop>1</IsOpenSAFWhenVehicleStop>
+    <!--屏蔽报警位(车辆停车)-->
+    <ShieldAlarmFlag>2305843009222369286</ShieldAlarmFlag>
+    <!--是否保存接收到指令的信息到数据库   1：开启  0：关闭  默认开启-->
+    <IsSaveRecCmdInfo>1</IsSaveRecCmdInfo>
+    <!--CmdCode黑名单（不做保存 使用 ','分割)-->
+    <CmdCodeNeverSaveList>2,258</CmdCodeNeverSaveList>
+
+    <!--线程数设置-->
+    <!--解析通讯报文的线程数-->
+    <ThreadCountCommEntity>-1</ThreadCountCommEntity>
+    <!--正常轨迹数据入库线程数-->
+    <ThreadCountNormalPos>-1</ThreadCountNormalPos>
+    <!--异常轨迹数据入库线程数-->
+    <ThreadCountAbnormalPos>-1</ThreadCountAbnormalPos>
+    <!--当前位置数据入库线程数-->
+    <ThreadCountCurrPos>-1</ThreadCountCurrPos>
+    <!--IO外设数据入库线程数-->
+    <ThreadCountIODevice>-1</ThreadCountIODevice>
+    <!--命令应答入库线程数-->
+    <ThreadCountOrderResult>-1</ThreadCountOrderResult>
+    <!--其他数据入库线程数-->
+    <ThreadCountOtherBiz>-1</ThreadCountOtherBiz> 
+    <!--报警分析线程数-->
+    <ThreadCountAlarmAnalysis>-1</ThreadCountAlarmAnalysis>
+    <!--报警设置-->
+    <!--报警类型 17179869183 -->
+    <AlarmFlag>17592186044411</AlarmFlag>
+    <!--需要分析的车辆状态-->
+    <VehicleState>769</VehicleState>
+    <!--是否开启报警短信发送服务 0：关闭 1：开启-->
+    <IsOpenAlarmSmsService>0</IsOpenAlarmSmsService>
+    <!--需要发送短信的报警类型-->
+    <AlarmNeedSendSms>7</AlarmNeedSendSms>
+    <!--需要发送调度信息的报警类型-->
+    <AlarmNeedSendText>2</AlarmNeedSendText>    
+    <!--短信网关服务器IP-->
+    <SmsServer>218.5.10.82</SmsServer>
+    <!--短信网关端口-->
+    <SendSmsPort>9032</SendSmsPort>
+    <!--短信发送者-->
+    <SmsSender>xxx</SmsSender>
+    <!--位置解析服务地址-->
+    <GisUrl>http://top7.fzcxkj.com/map/OpenLayers/MapService.asmx/QueryAllLayerByPoint?x={x}&amp;y={y}</GisUrl>
+    <!--短信格式 车牌号：{0}； 时间：{1}； 地点：{2}； 报警类型：{3}； 车速：{4}km/h-->
+    <SmsMsgFormat>车辆{0}于{1}在{2} 发生{3}，车速{4}km/h</SmsMsgFormat>
+    <!--语音消息格式 速度:{0}-->
+    <SendTextMsgFormat>车已超速,请减速慢行!当前速度{0}千米/小时</SendTextMsgFormat>
+    <!--版本标识 1：正常版本 2：网锐油耗版本 4:天凯风林 油耗扩展-->
+    <VersionType>1</VersionType>
+    <!--系统参数设置-->
+    <!--路宽（偏离路线分析）-->
+    <RoadWidth>500</RoadWidth>      
+  </param>
+</Data>

@@ -1,0 +1,48 @@
+info:
+  contact: {}
+  description: Check Cup used info
+  license: {}
+paths:
+  /ping:
+    get:
+      consumes:
+      - application/json
+      description: Response ping
+      produces:
+      - application/json
+      responses:
+        "200": {}
+      summary: A ping tool
+      tags:
+      - ping
+  /sd/cpu:
+    get:
+      consumes:
+      - application/json
+      description: Check Cup used info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 70%
+          schema:
+            type: string
+      summary: Check Cup used info
+      tags:
+      - sd
+  /sd/health:
+    get:
+      consumes:
+      - application/json
+      description: Shows OK as the ping-pong result
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Shows OK as the ping-pong result
+      tags:
+      - sd
+swagger: "2.0"
