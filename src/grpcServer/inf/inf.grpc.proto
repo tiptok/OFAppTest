@@ -1,0 +1,15 @@
+syntax ="proto3";
+
+package inf;
+
+message UserReq{
+    int32 userId =1;
+}
+
+message UserRsp{
+    string name =1;
+}
+
+service UserData{
+    rpc GetUser(UserReq)returns(UserRsp);
+}
