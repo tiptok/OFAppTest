@@ -3,12 +3,14 @@ package jwt
 import (
 	"log"
 	"net/http"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
 //https://segmentfault.com/a/1190000013297828
+//https://juejin.im/post/5b4dd73be51d4518ef2cd571
 func JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")
@@ -16,8 +18,10 @@ func JWTMiddleware() gin.HandlerFunc {
 		if token == "" {
 			code = http.StatusUnauthorized
 		} else {
-			_, err := ParseJWTToken(token)
+			claims, err := ParseJWTToken(token)
 			if err != nil {
+				code = http.StatusUnauthorized
+			} else if time.Now().Unix() > claims.ExpiresAt {
 				code = http.StatusUnauthorized
 			}
 		}
@@ -37,7 +41,7 @@ func JWTMiddleware() gin.HandlerFunc {
 	}
 }
 
-var jwtSecret = []byte("")
+var jwtSecret = []byte("123456")
 
 type UserTokenClaims struct {
 	Username string `json:"username"`
@@ -59,4 +63,22 @@ func ParseJWTToken(token string) (*UserTokenClaims, error) {
 	}
 
 	return nil, err
+}
+
+func GenerateToken(username, password string) (string, error) {
+	now := time.Now()
+	expireTime := now.Add(3 * time.Hour)
+
+	claims := UserTokenClaims{
+		Username: username,
+		Password: password,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expireTime.Unix(),
+			Issuer:    "jwt",
+		},
+	}
+
+	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := tokenClaims.SignedString(jwtSecret)
+	return token, err
 }

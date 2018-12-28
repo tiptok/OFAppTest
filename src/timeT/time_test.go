@@ -12,6 +12,8 @@ func TestTime(t *testing.T) {
 		log.Println("no zero time")
 	}
 	tZero, _ := time.Parse("2006-01-02 03:04:05", "0001-01-01 00:00:00")
+
+	log.Println(tZero.Format("060102150405"))
 	if tZero.IsZero() {
 		log.Printf("%v is zero time", tZero)
 	}

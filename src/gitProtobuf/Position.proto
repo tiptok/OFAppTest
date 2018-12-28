@@ -1,0 +1,24 @@
+syntax="proto2";
+
+package model;
+
+message TermPosition{
+    required string SimNum=1;
+    required int64 GpsTime=2;//unix时间戳
+    required double Lon =3;
+    required double Lat =4;
+    required double Speed =5;
+    required double ADRSpeed =6;
+    required double Mileage =7;
+    required int32 Direction =8;
+    required int32 Altitude =9;
+    required int64 StateFlag =10;
+    required int64 AlarmFlag =11;
+    required int64 LimitSpeed =12;
+
+    required int32 MediaType =13;
+    required int32 MediaFormatCode=14;
+    required bytes MediaData =15;
+
+    required int64 RecvTime =16;
+}

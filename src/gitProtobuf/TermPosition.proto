@@ -1,0 +1,18 @@
+syntax="proto3";
+
+package model;
+
+message EntityBase{
+    required int32 MsgId =1;
+    required int32 MsgSN =2;
+    required int32 SubMsgId =3;
+    required string AccessCode =4;
+}
+
+message TermPosition{
+    required EntityBase Base=1;
+    required string SimNum=2;
+    required int64 GpsTime=3;//unix时间戳
+    required int64 AlarmFlag=4;
+    optional bytes MediaData =5[default=];
+}

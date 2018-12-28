@@ -1,11 +1,11 @@
-package netT
+package main
 
-import (
-	"net"
-	"testing"
-)
+// import (
+// 	"net"
+// 	"testing"
+// )
 
-func TestResovel(t *testing.T) {
-	res := &net.Resolver{}
-    //res.
-}
+// func TestResovel(t *testing.T) {
+// 	res := &net.Resolver{}
+// 	//res.
+// }

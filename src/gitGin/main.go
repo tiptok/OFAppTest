@@ -12,6 +12,8 @@ import (
 
 	"strconv"
 
+	"github.com/tiptok/OFAPPTEST/src/gitGin/mid/jwt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
@@ -31,6 +33,7 @@ func main() {
 	sd := r.Group("/sd")
 	sd.Use(AuthMidware())
 	sd.Use(NoCache)
+	sd.Use(jwt.JWTMiddleware())
 	sd.Use(Secure)
 	{
 		sd.GET("/health", HealthCheck)
@@ -43,6 +46,7 @@ func main() {
 		demo.GET("/player/:name", DemoUserAction) //匹配路由 demo/player/xxx
 		demo.GET("/welcome", DemoWelcome)
 		demo.POST("/form_post", Demoform_post)
+		demo.GET("/auth", DemoAuth)
 
 		demo.POST("/loginJSON", LoginJSON)
 		demo.POST("/loginForm", LoginForm)
@@ -126,6 +130,25 @@ func Demoform_post(c *gin.Context) {
 		"status":  "posted",
 		"message": message,
 		"nick":    errmessage,
+	})
+}
+
+// @Summary Get jwt token
+// @Description Get jwt token
+// @Tags demo
+// @Accept  json
+// @Produce  json
+// @Success 200 {string} plain "70%"
+// @Router /demo/auth [get]
+func DemoAuth(c *gin.Context) {
+	username := c.Query("username")
+	password := c.Query("password")
+	token, err := jwt.GenerateToken(username, password)
+	if err != nil {
+		log.Println(err)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
 	})
 }
 
