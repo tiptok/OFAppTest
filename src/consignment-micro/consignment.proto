@@ -1,0 +1,24 @@
+syntax ="proto3";
+
+package main;
+
+service ShipService{
+    rpc CreateConsignment(Consignment)returns(Response){}
+    rpc GetAllConsignment(RequestAll)returns(ResponseAll){}
+}
+
+message Consignment{
+    string id =1;
+    string desc =2;
+}
+
+message Response{
+    bool created =1;
+    Consignment consignment=2;
+}
+message RequestAll{
+
+}
+message ResponseAll{
+    repeated Consignment consignments=1;
+}
