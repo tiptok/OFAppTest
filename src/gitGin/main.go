@@ -1,16 +1,13 @@
 package main
 
 import (
+	"io"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	_ "github.com/tiptok/OFAPPTEST/src/gitGin/docs"
-
-	"io"
-	"os"
-
-	"log"
-
-	"strconv"
 
 	"github.com/tiptok/OFAPPTEST/src/gitGin/mid/jwt"
 
@@ -61,6 +58,13 @@ func main() {
 		demo.GET("/somejson", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "hello", "title": "azmaze"})
 		})
+	}
+
+	alarmflag := r.Group("/alarmflag")
+	{
+		alarmflag.POST("/save", AlarmFlagSave)
+		alarmflag.POST("/delete", AlarmFlagDelete)
+		alarmflag.POST("/update", AlarmFlagUpdate)
 	}
 	r.Run(":8081")
 }
