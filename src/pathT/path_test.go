@@ -55,4 +55,29 @@ func TestPath(t *testing.T){
 
 	log.Println("-----------------分割路径中的目录与文件--------------")
 	log.Println(path.Split(`./a/b/e/c.img`))
+
+	//https://www.cnblogs.com/jkko123/p/6923962.html
+}
+
+func TestFilePath(t *testing.T){
+	var spath string = `./a/b/e/c.img`
+	abs,_ :=filepath.Abs(spath)
+	log.Println("路径的绝对路径",abs) 
+
+	log.Println(filepath.Base(`./a/b/e/c.img`))
+
+	log.Println(filepath.Dir(spath))
+	log.Println(filepath.Ext(spath))
+	log.Println(filepath.FromSlash(spath))
+	log.Println(filepath.VolumeName(spath))
+
+	dir,file :=filepath.Split(spath)
+	log.Println(dir,file)
+
+	log.Println(filepath.EvalSymlinks(`1.lnk`))
+
+	filepath.Walk("D:\\Hearthstone",func(path string ,info os.FileInfo,err error )error{
+		log.Println("遍历",path)
+		return nil
+	})
 }
