@@ -80,4 +80,6 @@ func TestFilePath(t *testing.T){
 		log.Println("遍历",path)
 		return nil
 	})
+
+	//test ssh
 }
