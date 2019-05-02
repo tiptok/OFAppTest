@@ -1,4 +1,4 @@
-package goexternal
+package ogoexternal
 
 import (
 	"github.com/tiptok/gotransfer/conn"

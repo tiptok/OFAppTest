@@ -1,4 +1,4 @@
-package goudpT
+package ogoudp
 
 import (
 	"log"

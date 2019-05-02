@@ -1,4 +1,4 @@
-package goexternal
+package ogoexternal
 
 import (
 	"sync"

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/tiptok/OFAPPTest/src/grpcServer/inf"
+	"github.com/tiptok/OFAppTest/src/ogrpc/grpcServer/inf"
 )
 
 const (
