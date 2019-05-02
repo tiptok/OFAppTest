@@ -1,4 +1,4 @@
-package gitfunnyT
+package gitfunny
 
 import (
 	"log"

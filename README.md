@@ -7,6 +7,6 @@ golang 相关代码类库测试
 * src/git* 测试其他库代码
 * src/golib golang自带库测试
 * src/algorithmsT go算法测试
-
+* src/mic*   杂项测试
 
 

@@ -1,4 +1,4 @@
-package gitBeegoT
+package gitbeego
 
 import (
 	"testing"

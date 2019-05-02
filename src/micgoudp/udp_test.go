@@ -1,4 +1,4 @@
-package ogoudp
+package micgoudp
 
 import (
 	"log"
