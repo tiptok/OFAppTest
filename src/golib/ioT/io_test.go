@@ -5,9 +5,10 @@ import (
 	"io"
 	"os"
 	"strings"
+	"testing"
 )
 
-func main() {
+func TestIO(t *testing.T) {
 	data, err := ReadFrom(strings.NewReader("from string..."), 12)
 	if err == nil {
 		fmt.Println(string(data))
