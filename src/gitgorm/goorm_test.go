@@ -1,4 +1,4 @@
-package gormT
+package gitgorm
 
 import (
 	"database/sql"

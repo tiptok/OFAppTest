@@ -1,4 +1,4 @@
-package ConcT
+package syncT
 
 import (
 	"fmt"

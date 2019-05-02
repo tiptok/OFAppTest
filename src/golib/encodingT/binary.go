@@ -1,4 +1,4 @@
-package main
+package encodingT
 
 import (
 	"encoding/binary"
