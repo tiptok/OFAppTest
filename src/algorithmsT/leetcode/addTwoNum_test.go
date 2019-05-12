@@ -155,6 +155,8 @@ func addTwoNumbers(l1 *ListNode, l2 *ListNode) *ListNode {
 }
 
 func addTwoNumbers1(l1 *ListNode, l2 *ListNode) *ListNode {
+	if l1==nil{return l2}
+	if l2 ==nil {return l1}
 	var cN1,cN2 *ListNode=l1,l2
 	var tmpNode *ListNode =&ListNode{}
 	rspNode :=tmpNode
