@@ -25,7 +25,7 @@ import (
 
 	"github.com/micro/go-log"
 
-	example "{{.Dir}}/proto/example"
+	example "{{.Dir}}/model/proto/example"
 )
 
 type Example struct{}
@@ -111,52 +111,30 @@ func Handler(ctx context.Context, msg *example.Message) error {
 	HandlerAPI = `package handler
 
 import (
-	"context"
-	"encoding/json"
-	"github.com/micro/go-log"
+    "log"
 
-	"{{.Dir}}/client"
-	"github.com/micro/go-micro/errors"
-	api "github.com/micro/go-api/proto"
-	example "github.com/micro/examples/template/srv/proto/example"
+	"github.com/gin-gonic/gin"
 )
 
 type Example struct{}
 
-func extractValue(pair *api.Pair) string {
-	if pair == nil {
-		return ""
-	}
-	if len(pair.Values) == 0 {
-		return ""
-	}
-	return pair.Values[0]
+func (s *Example) Anything(c *gin.Context) {
+	log.Print("Received Example.Anything API request")
+	c.JSON(200, map[string]string{
+		"message": "Hi, this is the Greeter API",
+	})
 }
 
-// Example.Call is called by the API as /{{.Alias}}/example/call with post body {"name": "foo"}
-func (e *Example) Call(ctx context.Context, req *api.Request, rsp *api.Response) error {
-	log.Log("Received Example.Call request")
+func (s *Example) Hello(c *gin.Context) {
+	log.Print("Received Example.Hello API request")
 
-	// extract the client from the context
-	exampleClient, ok := client.ExampleFromContext(ctx)
-	if !ok {
-		return errors.InternalServerError("{{.FQDN}}.example.call", "example client not found")
-	}
+	name := c.Param("name")
+	log.Print(name)
+	
 
-	// make request
-	response, err := exampleClient.Call(ctx, &example.Request{
-		Name: extractValue(req.Post["name"]),
+	c.JSON(200, map[string]string{
+		"message": "Hi, hello "+name,
 	})
-	if err != nil {
-		return errors.InternalServerError("{{.FQDN}}.example.call", err.Error())
-	}
-
-	b, _ := json.Marshal(response)
-
-	rsp.StatusCode = 200
-	rsp.Body = string(b)
-
-	return nil
 }
 `
 

@@ -113,7 +113,7 @@ func run(ctx *cli.Context){
 				"go get -u github.com/micro/protoc-gen-micro",
 				"\ncompile the proto file example.proto:\n",
 				"cd " + goDir,
-				"protoc --proto_path=. --go_out=. --micro_out=. proto/example/example.proto\n",
+				"protoc --proto_path=. --go_out=. --micro_out=. /proto/example/example.proto\n",
 			},
 		}
 	case "srv":
@@ -135,8 +135,11 @@ func run(ctx *cli.Context){
 				{"conf/app-dev.yaml",tmpl.ConfAPP_DEV},
 				{"conf/app-prod.yaml",tmpl.ConfAPP_PROD},
 				{"handler/example.go", tmpl.HandlerSRV},
-				{"subscriber/example.go", tmpl.SubscriberSRV},
-				{"proto/example/example.proto", tmpl.ProtoSRV},
+				//{"subscriber/example.go", tmpl.SubscriberSRV},
+				{"model/proto/example/example.proto", tmpl.ProtoSRV},
+				{"server/tmp",""},
+				{"service/http/tmp",""},
+				{"service/grpc",""},
 				{"Dockerfile", tmpl.DockerSRV},
 				{"Makefile", tmpl.Makefile},
 				{"README.md", tmpl.Readme},
@@ -148,7 +151,7 @@ func run(ctx *cli.Context){
 				"go get -u github.com/micro/protoc-gen-micro",
 				"\ncompile the proto file example.proto:\n",
 				"cd " + goDir,
-				"protoc --proto_path=. --go_out=. --micro_out=. proto/example/example.proto\n",
+				"protoc --proto_path=. --go_out=. --micro_out=. model/proto/example/example.proto\n",
 			},
 		}
 	case "api":
@@ -165,10 +168,14 @@ func run(ctx *cli.Context){
 			Plugins:   plugins,
 			Files: []file{
 				{"main.go", tmpl.MainAPI},
-				{"plugin.go", tmpl.Plugin},
-				{"client/example.go", tmpl.WrapperAPI},
+				{"conf/app.yaml",tmpl.ConfAPP},
+				{"conf/app-dev.yaml",tmpl.ConfAPP_DEV},
+				{"conf/app-prod.yaml",tmpl.ConfAPP_PROD},
+				//{"plugin.go", tmpl.Plugin},
 				{"handler/example.go", tmpl.HandlerAPI},
-				{"proto/example/example.proto", tmpl.ProtoAPI},
+				{"model/proto/", ""},
+				{"server/tmp",""},
+				{"service/http/tmp",""},
 				{"Makefile", tmpl.Makefile},
 				{"Dockerfile", tmpl.DockerSRV},
 				{"README.md", tmpl.Readme},
@@ -214,6 +221,8 @@ func run(ctx *cli.Context){
 	// set gomodule
 	if useGoModule == "on" || useGoModule == "auto" {
 		c.Files = append(c.Files, file{"go.mod", tmpl.Module})
+	}else {
+		c.Files = append(c.Files, file{"go.mod", tmpl.Module})
 	}
 
 	if err := create(c); err != nil {
@@ -243,6 +252,9 @@ func create(c config) error {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
+		}
+		if len(file.Tmpl)==0{//部分只创建文件夹
+			continue
 		}
 		if err := write(c, f, file.Tmpl); err != nil {
 			return err
@@ -283,7 +295,7 @@ func Commands() []cli.Command{
 	return []cli.Command{
 		{
 			Name:"new",
-			Usage: "Create a service template",
+			Usage: "Create a service template; example: dmicro new -name demo -type api / dmicro new -name demo (srv)",
 			Flags:[]cli.Flag{
 				cli.StringFlag{
 					Name:"name",
@@ -293,7 +305,7 @@ func Commands() []cli.Command{
 				cli.StringFlag{
 					Name:"namespace",
 					Usage:"Namespace for the service e.g com.example",
-					Value:"go.dmicro",
+					Value:"go.micro",
 				},
 				cli.StringFlag{
 					Name:  "type",
