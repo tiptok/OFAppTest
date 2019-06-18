@@ -118,3 +118,5 @@ func postorderTraversal(root *TreeNode) []int {
 	}
 	return ret
 }
+
+//预排序遍历树 https://my.oschina.net/XYleung/blog/99604
