@@ -3,6 +3,7 @@ package main
 import (
 	"container/list"
 	"fmt"
+	"log"
 	"testing"
 )
 
@@ -40,4 +41,9 @@ func PrintList(l *list.List) {
 		fmt.Print(e.Value)
 	}
 	fmt.Println("")
+}
+
+func Test_tmp(t *testing.T){
+	input :=20010
+	log.Println(fmt.Sprintf("%.2f",float64(input)/float64(100.0)))
 }

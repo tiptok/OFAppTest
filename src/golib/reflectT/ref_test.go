@@ -180,3 +180,29 @@ func stringsAssignFunc(val string) assignFunc {
 		return nil
 	}
 }
+
+
+type TaskCall interface{
+	Call(input interface{})error
+}
+type MyCustomeTaskCall struct {
+}
+func(t MyCustomeTaskCall)Call(input interface{})error{
+	return nil
+}
+
+//判断结构是否实现某个接口
+func Test_IsStructImplementInterface(t *testing.T){
+	//获取type 的interface
+	_taskCallInterface :=reflect.TypeOf((*TaskCall)(nil)).Elem() //reflect.PtrTo(o) == t.Elem()
+	log.Println("ptr:",_taskCallInterface)
+	log.Println("name:",_taskCallInterface.Name())
+	log.Println("method:",_taskCallInterface.Method(0))
+	log.Println("num method:",_taskCallInterface.NumMethod())
+
+	var call MyCustomeTaskCall
+	callType :=reflect.TypeOf(call)
+	if reflect.PtrTo(callType).Implements(_taskCallInterface){
+		log.Println(callType.Name(),"implement interface:",_taskCallInterface)
+	}
+}
