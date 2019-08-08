@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"log"
+	"sync"
 	"testing"
 )
 
@@ -46,4 +47,30 @@ func PrintList(l *list.List) {
 func Test_tmp(t *testing.T){
 	input :=20010
 	log.Println(fmt.Sprintf("%.2f",float64(input)/float64(100.0)))
+}
+
+func Test_G(t *testing.T){
+	wg := new(sync.WaitGroup)
+	chn := make(chan int, 10)
+	defer close(chn)
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(i int) {
+
+			defer wg.Done()
+			if i%4 == 0 {
+				return
+			}
+			chn <- i
+		}(i)
+	}
+	wg.Wait()
+	log.Println(cap(chn))
+	rmp := make(map[int]bool)
+	for i := 0; i < len(chn); i++ {
+		if c, ok := <-chn; ok {
+			rmp[c] = true
+		}
+	}
+	log.Println(rmp)
 }
