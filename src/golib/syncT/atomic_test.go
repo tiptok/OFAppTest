@@ -7,7 +7,37 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"unsafe"
 )
+
+//atomic.Value  原子操作
+func TestAtomicValue(t *testing.T){
+	var v atomic.Value
+	var m int64
+	go func(){//write
+		for{
+			m = time.Now().Unix()
+			v.Store(m)
+			log.Println("Store:",m)
+			time.Sleep(time.Second*10)
+
+		}
+	}()
+	go func(){//read
+		for{
+			time.Sleep(time.Second*1)
+			value :=v.Load()
+			log.Println("Get:",value.(int64))
+		}
+	}()
+
+	/*unsafe.Pointer*/
+	bytes:=[]byte{104, 101, 108, 108, 111}
+	p :=unsafe.Pointer(&bytes)
+	str :=(*string)(p)
+	log.Println("unsafe.pointer:",str,*str)
+	time.Sleep(time.Second*60)
+}
 
 func TestAtomic(t *testing.T) {
 	runtime.GOMAXPROCS(2)
