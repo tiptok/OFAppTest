@@ -1,1 +1,5 @@
-package gitgods
+package main
+
+func TestArrayList(){
+
+}
