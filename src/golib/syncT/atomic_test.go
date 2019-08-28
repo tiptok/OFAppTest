@@ -3,6 +3,7 @@ package syncT
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"runtime"
 	"sync/atomic"
 	"testing"
@@ -84,3 +85,24 @@ func TestLoadInt(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 }
+
+func TestError(t *testing.T){
+	var x float64 = 3.4
+	p := reflect.ValueOf(&x) // Note: take the address of x.
+	v :=p.Elem()
+	fmt.Println("type of p:", p.Type())
+	fmt.Println("settability of p:", p.CanSet(),p.Elem())
+	v.SetFloat(6.6)
+	fmt.Println("settability of v:", v.CanSet(),v,x)
+}
+
+type data struct {
+	name string
+}
+func (p data) print() {
+	fmt.Println("name:",p.name)
+}
+type printer interface {
+	print()
+}
+

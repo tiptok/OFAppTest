@@ -13,9 +13,11 @@ import (
 func main(){
 	var topic,channel string
 	fs :=flag.NewFlagSet("producer",1)
+	fs.String("addr","127.0.0.1:4150","set nsqd address")
+
 	flag.StringVar(&topic,"topic","my2","set public topic name")
 	flag.StringVar(&channel,"channel","tip-chan","set consumer channel name")
-	fs.String("addr","127.0.0.1:4150","set nsqd address")
+
 	addr :=fs.Lookup("addr").Value.(flag.Getter).Get().(string)
 	p,err:= nsq.NewProducer(addr,nsq.NewConfig())
 	if err!=nil{

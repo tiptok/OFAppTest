@@ -2,17 +2,7 @@ package gitetcd_io
 
 import (
 	"context"
-	"github.com/etcd-io/etcd/clientv3"
-	"log"
-	"sync"
-	"testing"
-	"time"
-)
-
-import (
-	"context"
 	"fmt"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/etcd-io/etcd/clientv3"
 	"log"
 	"sync"

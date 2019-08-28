@@ -206,3 +206,32 @@ func Test_IsStructImplementInterface(t *testing.T){
 		log.Println(callType.Name(),"implement interface:",_taskCallInterface)
 	}
 }
+
+func TestReflectSet(t *testing.T){
+	var x float64 = 3.4
+	p := reflect.ValueOf(&x) // Note: take the address of x.
+	v :=p.Elem()
+	fmt.Println("type of p:", p.Type())
+	fmt.Println("settability of p:", p.CanSet(),p.Elem())
+	v.SetFloat(6.6)
+	fmt.Println("settability of v:", v.CanSet(),v,x)
+}
+
+type T struct {
+	A int
+	B string
+}
+//reflect struct
+func TestStruct(t *testing.T){
+	v:=T{10,"tiptok"}
+	s :=reflect.ValueOf(&v).Elem()   //如果没有&  v值不可以设置
+	typeofT :=s.Type()
+	for i:=0;i<s.NumField();i++{
+		f:=s.Field(i)
+		log.Println(fmt.Sprintf("%d :%s %v =%v",i,typeofT.Field(i).Name,f.Type(),f.Interface()))
+	}
+	s.Field(0).SetInt(20)
+	log.Println(v)
+	s.Field(1).SetString("write go")
+	log.Println(v)
+}
