@@ -222,16 +222,19 @@ type T struct {
 	B string
 }
 //reflect struct
+//反射原理 1.type system 关联 2：通过指针操作底层数据
 func TestStruct(t *testing.T){
 	v:=T{10,"tiptok"}
 	s :=reflect.ValueOf(&v).Elem()   //如果没有&  v值不可以设置
 	typeofT :=s.Type()
+	log.Println(s.Kind(),s.Kind()==reflect.Struct)
 	for i:=0;i<s.NumField();i++{
 		f:=s.Field(i)
 		log.Println(fmt.Sprintf("%d :%s %v =%v",i,typeofT.Field(i).Name,f.Type(),f.Interface()))
 	}
 	s.Field(0).SetInt(20)
-	log.Println(v)
+	log.Println("Can set:",s.Field(0).CanSet())
+	log.Println(v,s.Field(0).Int())
 	s.Field(1).SetString("write go")
-	log.Println(v)
+	log.Println(v,s.Field(1).String())
 }

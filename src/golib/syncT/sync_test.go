@@ -79,3 +79,13 @@ func ProcessWG(wg *sync.WaitGroup, i int) {
 	// }
 	wg.Done() //阻塞直到所有的 
 }
+
+func TestTimer(t *testing.T){
+	tick :=time.NewTicker(time.Second*1)
+	go func(){
+		for t:=range tick.C{
+			fmt.Println("tick at",t)
+		}
+	}()
+	time.Sleep(time.Second*100)
+}
