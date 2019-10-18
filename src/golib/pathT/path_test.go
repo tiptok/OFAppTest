@@ -61,18 +61,20 @@ func TestPath(t *testing.T){
 
 func TestFilePath(t *testing.T){
 	var spath string = `./a/b/e/c.img`
+	log.Println("path:",spath)
 	abs,_ :=filepath.Abs(spath)
 	log.Println("路径的绝对路径",abs) 
 
-	log.Println(filepath.Base(`./a/b/e/c.img`))
+	log.Println("Base:",filepath.Base(`./a/b/e/c.img`))
 
-	log.Println(filepath.Dir(spath))
-	log.Println(filepath.Ext(spath))
-	log.Println(filepath.FromSlash(spath))
-	log.Println(filepath.VolumeName(spath))
+	log.Println("Dir:",filepath.Dir(spath))
+	log.Println("Ext:",filepath.Ext(spath))
+	log.Println("FromSlash:",filepath.FromSlash(spath))
+	log.Println("VolumeName:",filepath.VolumeName("\\\\server\\path\\file"))
+	log.Println("VolumeName:",filepath.VolumeName("D://a/b"))
 
 	dir,file :=filepath.Split(spath)
-	log.Println(dir,file)
+	log.Println("Split:",dir,file)
 
 	log.Println(filepath.EvalSymlinks(`1.lnk`))
 
@@ -82,4 +84,26 @@ func TestFilePath(t *testing.T){
 	})
 
 	//test ssh
+}
+
+type MatchTest struct {
+	pattern, s string
+	match      bool
+	err        error
+}
+
+var matchTests = []MatchTest{
+	{"**[1-9]bc", "5bc", true, nil},
+	{"abc", "abc", true, nil},
+	{"*", "abc", true, nil},
+	{"*c", "abc", true, nil},
+}
+
+func TestMatch(t *testing.T){
+	for _, tt := range matchTests {
+		ok, err := path.Match(tt.pattern, tt.s)
+		if ok != tt.match || err != tt.err {
+			t.Errorf("Match(%#q, %#q) = %v, %v want %v, %v", tt.pattern, tt.s, ok, err, tt.match, tt.err)
+		}
+	}
 }
