@@ -29,29 +29,47 @@ func ReadFrom(r io.Reader, num int) ([]byte, error) {
 	return p, err
 }
 
-func TestMultiRead(t *testing.T){
-	r1:=strings.NewReader("tip")
-	r2:=strings.NewReader("tok")
-	mr :=io.MultiReader(r1,r2)
-	var buf []byte = make([]byte,10)
-	rn,_:=mr.Read(buf) //只会读取到第一个reader
-	t.Log("Read:",string(buf),rn)
-	io.ReadFull(mr,buf[rn:])//io.ReadFull(mr,buf)
+func TestMultiRead(t *testing.T) {
+	r1 := strings.NewReader("tip")
+	r2 := strings.NewReader("tok")
+	mr := io.MultiReader(r1, r2)
+	var buf []byte = make([]byte, 10)
+	rn, _ := mr.Read(buf) //只会读取到第一个reader
+	t.Log("Read:", string(buf), rn)
+	io.ReadFull(mr, buf[rn:]) //io.ReadFull(mr,buf)
 	t.Log(string(buf))
 
-	allocs :=testing.AllocsPerRun(1000,func(){
-		io.Copy(os.Stdout,mr)
+	allocs := testing.AllocsPerRun(1000, func() {
+		io.Copy(os.Stdout, mr)
 	})
-	t.Log("allocs:",allocs)
+	t.Log("allocs:", allocs)
 }
 
-func TestMultiWriter(t *testing.T){
-	r :=strings.NewReader("tiptok")
-	var buf1,buf2 bytes.Buffer
-	w :=io.MultiWriter(&buf1,&buf2)
-	if _,err :=io.Copy(w,r);err!=nil{ //同时写入两个writer
+func TestMultiWriter(t *testing.T) {
+	r := strings.NewReader("tiptok")
+	var buf1, buf2 bytes.Buffer
+	w := io.MultiWriter(&buf1, &buf2)
+	if _, err := io.Copy(w, r); err != nil { //同时写入两个writer
 		log.Fatal(err)
 	}
 	t.Log(buf1.String())
 	t.Log(buf2.String())
+}
+
+type count int
+
+var _ io.ReaderFrom = count(0)
+
+func (count) ReadFrom(r io.Reader) (n int64, err error) {
+	buf := bytes.NewBuffer(nil)
+	return buf.ReadFrom(r)
+}
+
+func TestCount(t *testing.T) {
+	c := count(0)
+	data := bytes.NewBufferString("aabb")
+	n, _ := c.ReadFrom(data)
+	if n != 4 {
+		t.Fatal("readfrom n error.")
+	}
 }
