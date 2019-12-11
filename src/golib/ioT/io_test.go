@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestIO(t *testing.T) {
@@ -54,4 +55,31 @@ func TestMultiWriter(t *testing.T){
 	}
 	t.Log(buf1.String())
 	t.Log(buf2.String())
+}
+
+func TestIOPipe(t *testing.T){
+	r,w:=io.Pipe()
+	c :=make(chan int)
+	go func(){
+		w.Write([]byte("tiptok"))
+		c<-0
+	}()
+	var buf []byte = make([]byte,50)
+	r.Read(buf)//调用io.copy 或者其他会死锁，要调用 Read释放锁
+	t.Log(string(buf))
+	<-c
+	r.Close()
+	w.Close()
+}
+
+func TestPipe(t *testing.T){
+	var done = make(chan struct{})
+	go func(){
+		select{
+			case <-done:
+		}
+		t.Log("end func.")
+	}()
+	close(done) //关闭 ，读取到err
+	time.Sleep(time.Second*2)
 }
