@@ -1,4 +1,4 @@
-package main
+package netT
 
 import (
 	"io/ioutil"
