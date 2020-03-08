@@ -17,3 +17,5 @@
 *wasm
 
 *.idea
+*.mod
+*.sum
