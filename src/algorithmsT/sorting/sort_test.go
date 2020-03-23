@@ -2,6 +2,13 @@ package sorting
 
 import "testing"
 
+var input [][]int = [][]int{
+	[]int{3, 2, 5, 4, 1},
+	[]int{3, 5, 2, 4, 9},
+	[]int{4, 6, 8, 5, 9, 7, 11},
+	[]int{4, 6, 8, 0, 0, 8, 11, 20, 15},
+}
+
 //测试堆排序
 func TestHeapSort(t *testing.T) {
 	var input [][]int = [][]int{
@@ -55,4 +62,12 @@ func TestCopy(t *testing.T) {
 	b := []int{2}
 	copy(a[0:1], b[0:1])
 	t.Log(a)
+}
+
+func TestBubbleSort(t *testing.T) {
+	for i := range input {
+		t.Logf("%v in:%v", i, input[i])
+		RandomQuickSort(input[i], 0, len(input[i])-1)
+		t.Logf("%v out:%v", i, input[i])
+	}
 }
