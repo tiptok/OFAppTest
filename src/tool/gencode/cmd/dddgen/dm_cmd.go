@@ -27,6 +27,7 @@ func dmrun(ctx *cli.Context) {
 		return
 	}
 	dmGen := DomainModelGenFactory()
+	dmGen.GenCommon(dms, o)
 	for i := range dms {
 		if err := dmGen.GenDomainModel(dms[i], o); err != nil {
 			log.Println(dms[i].Name, err)
@@ -55,6 +56,7 @@ func ReadDomainModels(path string) (dms []DomainModel) {
 			return nil
 		}
 		var dm DomainModel
+		data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 		if err := json.Unmarshal(data, &dm); err != nil {
 			log.Println(path, err)
 			return nil
@@ -66,7 +68,8 @@ func ReadDomainModels(path string) (dms []DomainModel) {
 	return
 }
 func DomainModelGenFactory() DomainModelGen {
-	return &GoPgDomainModelGen{}
+	gen := &GoPgDomainModelGen{}
+	return gen
 }
 
 type DMOptions struct {
@@ -78,6 +81,7 @@ type DomainModelGen interface {
 	GenDomainModel(dm DomainModel, o DMOptions) error
 	GenRepository(dm DomainModel, o DMOptions) error
 	GenPersistence(dm DomainModel, o DMOptions) error
+	GenCommon(dm []DomainModel, o DMOptions) error
 }
 
 //go pg domain model gen
@@ -88,13 +92,16 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 	buf := bytes.NewBuffer(nil)
 	for i := range dm.Fields {
 		field := dm.Fields[i]
-		buf.WriteString(fmt.Sprintf("	%v %v `json:\"%v\"`\n", field.Name, field.TypeValue, common.LowFirstCase(field.Name)))
+		buf.WriteString(fmt.Sprintf("	// %s\n", field.Desc))
+		buf.WriteString(fmt.Sprintf("	%v %v `json:\"%v\"`", field.Name, field.TypeValue, common.LowFirstCase(field.Name)))
+		if i != len(dm.Fields)-1 {
+			buf.WriteString("\n")
+		}
 	}
 	tP, err := template.New("controller").Parse(tmplProtocolDomainModel)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	bufTmpl := bytes.NewBuffer(nil)
 	m := make(map[string]string)
 	m["Model"] = dm.Name
@@ -105,7 +112,7 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 	return nil
 }
 func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
-	filePath := "/infrastructure/repository"
+	filePath := "/pkg/infrastructure/repository"
 
 	tP, err := template.New("controller").Parse(tmplProtocolDomainPgRepository)
 	if err != nil {
@@ -120,12 +127,16 @@ func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
 	return saveTo(o, filePath, filename("Pg"+dm.Name+"Repository", "go"), bufTmpl.Bytes())
 }
 func (g *GoPgDomainModelGen) GenPersistence(dm DomainModel, o DMOptions) error {
-	filePath := "/infrastructure/pg/models"
+	filePath := "/pkg/infrastructure/pg/models"
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString(fmt.Sprintf("	%v %v `pg:\"%v\"`\n", "tableName", "struct{}", common.LowCasePaddingUnderline(dm.Name)))
 	for i := range dm.Fields {
 		field := dm.Fields[i]
-		buf.WriteString(fmt.Sprintf("	%v %v\n", field.Name, field.TypeValue))
+		buf.WriteString(fmt.Sprintf("	//	%s\n", field.Desc))
+		buf.WriteString(fmt.Sprintf("	%v %v", field.Name, field.TypeValue))
+		if i != len(dm.Fields)-1 {
+			buf.WriteString("\n")
+		}
 	}
 	tP, err := template.New("controller").Parse(tmplProtocolPgModel)
 	if err != nil {
@@ -139,6 +150,61 @@ func (g *GoPgDomainModelGen) GenPersistence(dm DomainModel, o DMOptions) error {
 	tP.Execute(bufTmpl, m)
 
 	return saveTo(o, filePath, filename("Pg"+dm.Name, "go"), bufTmpl.Bytes())
+}
+
+func (g *GoPgDomainModelGen) GenCommon(dm []DomainModel, o DMOptions) error {
+	err := g.genConstant(dm, o)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err = g.genPgInit(dm, o)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return saveTo(o, "/pkg/infrastructure/pg/transaction", filename("transaction", "go"), []byte(tmplPgTransaction))
+}
+
+func (g *GoPgDomainModelGen) genConstant(dm []DomainModel, o DMOptions) error {
+	var filePath = "/pkg/constant"
+	tP, err := template.New("controller").Parse(tmplConstantPg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bufTmpl := bytes.NewBuffer(nil)
+	m := make(map[string]string)
+	tP.Execute(bufTmpl, m)
+
+	saveTo(o, filePath, filename("postgresql", "go"), bufTmpl.Bytes())
+
+	return nil
+}
+func (g *GoPgDomainModelGen) genPgInit(dm []DomainModel, o DMOptions) error {
+	var filePath = "/pkg/infrastructure/pg"
+	tP, err := template.New("controller").Parse(tmplPgInit)
+	if err != nil {
+		log.Fatal(err)
+	}
+	buf := bytes.NewBuffer(nil)
+	for i := range dm {
+		m := dm[i].Name
+		buf.WriteString(fmt.Sprintf("			(*models.%v)(nil),", m))
+		if i != len(dm)-1 {
+			buf.WriteString("\n")
+		}
+	}
+	bufTmpl := bytes.NewBuffer(nil)
+	m := make(map[string]string)
+	m["models"] = buf.String()
+	tP.Execute(bufTmpl, m)
+
+	saveTo(o, filePath, filename("init", "go"), bufTmpl.Bytes())
+
+	return nil
 }
 
 //保存文件

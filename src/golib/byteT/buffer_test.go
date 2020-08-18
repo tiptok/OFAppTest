@@ -44,6 +44,5 @@ func TestNewBuffer(t *testing.T) {
 }
 
 func PrintBufInfo(buf *bytes.Buffer) {
-	fmt.Println("Current Buffer Len:", buf.Len())
-	fmt.Println("Left Buffer:", string(buf.Bytes()))
+	fmt.Println("Current Buffer Len:", buf.Len(), "Left Buffer:", string(buf.Bytes()))
 }
