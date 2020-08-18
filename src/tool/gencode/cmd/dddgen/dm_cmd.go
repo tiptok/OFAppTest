@@ -1,10 +1,10 @@
-package cmd
+package dddgen
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tiptok/OFAppTest/src/tool/gencode/tmpl"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/common"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
@@ -13,7 +13,7 @@ import (
 	"text/template"
 )
 
-func rundm(ctx *cli.Context) {
+func dmrun(ctx *cli.Context) {
 	var (
 		path string    = ctx.String("p")
 		o    DMOptions = DMOptions{}
@@ -88,9 +88,9 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 	buf := bytes.NewBuffer(nil)
 	for i := range dm.Fields {
 		field := dm.Fields[i]
-		buf.WriteString(fmt.Sprintf("	%v %v `json:\"%v\"`\n", field.Name, field.TypeValue, LowFirstCase(field.Name)))
+		buf.WriteString(fmt.Sprintf("	%v %v `json:\"%v\"`\n", field.Name, field.TypeValue, common.LowFirstCase(field.Name)))
 	}
-	tP, err := template.New("controller").Parse(tmpl.ProtocolDomainModel)
+	tP, err := template.New("controller").Parse(tmplProtocolDomainModel)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
 	filePath := "/infrastructure/repository"
 
-	tP, err := template.New("controller").Parse(tmpl.ProtocolDomainPgRepository)
+	tP, err := template.New("controller").Parse(tmplProtocolDomainPgRepository)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -122,12 +122,12 @@ func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
 func (g *GoPgDomainModelGen) GenPersistence(dm DomainModel, o DMOptions) error {
 	filePath := "/infrastructure/pg/models"
 	buf := bytes.NewBuffer(nil)
-	buf.WriteString(fmt.Sprintf("	%v %v `pg:\"%v\"`\n", "tableName", "struct{}", LowCasePaddingUnderline(dm.Name)))
+	buf.WriteString(fmt.Sprintf("	%v %v `pg:\"%v\"`\n", "tableName", "struct{}", common.LowCasePaddingUnderline(dm.Name)))
 	for i := range dm.Fields {
 		field := dm.Fields[i]
 		buf.WriteString(fmt.Sprintf("	%v %v\n", field.Name, field.TypeValue))
 	}
-	tP, err := template.New("controller").Parse(tmpl.ProtocolPgModel)
+	tP, err := template.New("controller").Parse(tmplProtocolPgModel)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func filename(filename, suffix string) string {
 	if len(suffix) == 0 {
 		suffix = "go"
 	}
-	return fmt.Sprintf("%v.%v", LowCasePaddingUnderline(filename), suffix)
+	return fmt.Sprintf("%v.%v", common.LowCasePaddingUnderline(filename), suffix)
 }
 
 //领域模型

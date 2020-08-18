@@ -1,11 +1,11 @@
-package tmpl
+package mvcgen
 
 //param  -c Auth -m Login
 //Controller Auth
 //ControllerLowcase auth
 //Method Login
 //MethodLowcase login
-var ControllerMethod =`
+const tmplControllerMethod = `
 //{{.Method}}
 func(this *{{.Controller}}Controller){{.Method}}(){
 	var msg *mybeego.Message
@@ -26,17 +26,17 @@ func(this *{{.Controller}}Controller){{.Method}}(){
 }
 `
 
-var ProtocolModel =`
+const tmplProtocolModel = `
 /*{{.Method}} */
 type {{.Method}}Request struct {
-	Xxx string` +"`json:\"xxx\" valid:\"Required\"`" +`
+	Xxx string` + "`json:\"xxx\" valid:\"Required\"`" + `
 }
 type {{.Method}}Response struct {
 }
 `
 
 //Method Login
-var Handler =`
+const tmplHandler = `
 	func {{.Method}}(request *protocol.{{.Method}}Request)(rsp *protocol.{{.Method}}Response,err error){
 	var (
 
@@ -46,7 +46,7 @@ var Handler =`
 }
 `
 
-var Router =`
+const tmplRouter = `
 /*{{.MethodLowcase}} controller*/
 {
 	{{.ControllerLowcase}} :=&v1.{{.Controller}}Controller{}
@@ -58,6 +58,5 @@ var Router =`
 //NameLowcase phone
 //TypeName string
 //ValidString Required;Mobile
-var Param =`
-{{.Name}} {{.TypeName}} `+"`json:\"{{.NameLowcase}}\" valid:\"{{.ValidString}}\"`"
-
+const Param = `
+{{.Name}} {{.TypeName}} ` + "`json:\"{{.NameLowcase}}\" valid:\"{{.ValidString}}\"`"

@@ -1,6 +1,6 @@
-package tmpl
+package dddgen
 
-var ProtocolDomainModel = `package domain
+const tmplProtocolDomainModel = `package domain
 
 type {{.Model}} struct {
 {{.Items}}
@@ -21,7 +21,7 @@ func (m *{{.Model}}) Identify() interface{} {
 }
 `
 
-var ProtocolDomainPgRepository = `package repository
+const tmplProtocolDomainPgRepository = `package repository
 
 type {{.Model}}Repository struct {
 	transactionContext *transaction.TransactionContext
@@ -108,7 +108,7 @@ func New{{.Model}}Repository(transactionContext *transaction.TransactionContext)
 }
 `
 
-var ProtocolPgModel = `package models
+const tmplProtocolPgModel = `package models
 
 type {{.Model}} struct {
 {{.Items}}
