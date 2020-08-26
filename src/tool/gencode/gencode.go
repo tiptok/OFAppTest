@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd"
+	_ "github.com/tiptok/OFAppTest/src/tool/gencode/constant"
 )
 
 func main() {

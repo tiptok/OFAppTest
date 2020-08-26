@@ -1,0 +1,14 @@
+## api-dsl gen
+```
+go run gencode.go api-dsl -p F://go//src//learn_project//ddd-project//stock -c Order -url order/orderDetail
+```
+
+## api-svr gen
+```
+go run gencode.go api-svr -p F://go//src//learn_project//ddd-project//stock --st F://go//src//stock
+```
+
+## dm  domain-model
+```
+go run gencode.go dm -p F://go//src//learn_project//ddd-project//stock  --st F://go//src//stock
+```

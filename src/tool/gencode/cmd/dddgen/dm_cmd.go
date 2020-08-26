@@ -22,7 +22,7 @@ func dmrun(ctx *cli.Context) {
 	o.DataPersistence = ctx.String("dp")
 	o.Language = ctx.String("lang")
 
-	dms := ReadDomainModels(path)
+	dms := ReadDomainModels(filepath.Join(path, "domain-model"))
 	if len(dms) == 0 {
 		return
 	}
