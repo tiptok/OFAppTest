@@ -18,9 +18,10 @@ const protocol = `{
 // Module   github.com/tiptok/gocommon
 // Controller Auth
 const beegonController = `package controllers
+
 import (
 	"{{.Module}}/pkg/application/{{.ControllerLower}}"
-	"github.com/tiptok/gocommon/pkg/log"
+	"github.com/tiptok/gocomm/pkg/log"
 	"{{.Module}}/pkg/protocol"
 	protocolx "{{.Module}}/pkg/protocol/{{.ControllerLower}}"
 )
@@ -61,5 +62,124 @@ func (this *{{.ControllerName}}Controller) {{.Method}}() {
 }
 `
 
-const beegoRouter = `
+// Module mod名
+// Routers
+const beegoRouters = `package routers
+
+import (
+	"github.com/astaxie/beego"
+	"{{.Module}}/pkg/port/beego/controllers"
+)
+
+func init() {
+{{.Routers}}
+}
+`
+
+const beegoRouter = `	beego.Router("{{.Url}}", &controllers.{{.Controller}}{}, "{{.HttpMethod}}:{{.Method}}")`
+
+const application = `package {{.Package}}
+
+import (
+	"github.com/tiptok/gocomm/pkg/log"
+	"{{.Module}}/pkg/protocol"
+	protocolx "{{.Module}}/pkg/protocol/{{.Package}}"
+)
+
+{{.Methods}}
+`
+
+//Method Login
+//
+const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, request *protocolx.{{.Method}}Request) (rsp *protocolx.{{.Method}}Response, err error) {
+	var (
+		transactionContext, _          = factory.CreateTransactionContext(nil)
+	)
+	rsp = &protocolx.{{.Method}}Response{}
+	if err = transactionContext.StartTransaction(); err != nil {
+		return nil, err
+	}
+	defer func() {
+		transactionContext.RollbackTransaction()
+	}()
+	
+	err = transactionContext.CommitTransaction()
+	return
+}`
+
+const protocolModel = `package {{.Package}}
+
+type {{.Model}} struct {
+{{.Fields}}
+}
+`
+
+const protocolField = `	// {{.Desc}}
+	{{.Column}} {{.Type}} {{.Tags}}
+`
+
+const beegoBaseController = `package controllers
+
+import (
+	"encoding/json"
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/context"
+	"github.com/astaxie/beego/validation"
+	"{{.Module}}/pkg/protocol"
+	"strconv"
+)
+
+type BaseController struct {
+	beego.Controller
+}
+
+func (controller BaseController) JsonUnmarshal(v interface{}) error {
+	body := controller.Ctx.Input.GetData("requestBody").([]byte)
+	return json.Unmarshal(body, v)
+}
+
+func (controller BaseController) GetLimitInfo() (offset int, limit int) {
+	offset, _ = controller.GetInt("offset")
+	limit, _ = controller.GetInt("limit")
+	return
+}
+
+//Valid  valid struct
+func (controller *BaseController) Valid(obj interface{}) (result bool, msg *protocol.ResponseMessage) {
+	/*校验*/
+	var err error
+	valid := validation.Validation{}
+	result, err = valid.Valid(obj)
+	if err != nil {
+	}
+	if !result {
+		msg = protocol.BadRequestParam(2)
+		return
+	}
+
+	return
+}
+
+func (this *BaseController)  Resp(msg *protocol.ResponseMessage) {
+	this.Data["json"] = msg
+	this.Ctx.Input.SetData("outputData", msg)
+	this.ServeJSON()
+}
+
+func (this *BaseController) RespH5(msg *protocol.ResponseMessage) {
+	if msg.Errno != 0 {
+		msg.Errno = -1
+	}
+	this.Data["json"] = msg
+	this.Ctx.Input.SetData("outputData", msg)
+	this.ServeJSON()
+}
+
+//获取请求头信息
+func (this *BaseController) GetRequestHeader(ctx *context.Context) *protocol.RequestHeader {
+	h := &protocol.RequestHeader{}
+	h.UserId, _ = strconv.ParseInt(ctx.Input.Header("x-mmm-id"), 10, 64)
+	return h
+}
+
 `

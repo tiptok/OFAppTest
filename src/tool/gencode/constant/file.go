@@ -6,10 +6,11 @@ const (
 	Api         = `/api`
 	ApiProtocol = `/api/protocol`
 
-	Controller  = `/pkg/port/%v/controller`
+	Controller  = `/pkg/port/%v/controllers`
 	Router      = `/pkg/port/%v/router`
 	Application = `/pkg/application/%v`
 	Protocol    = `/pkg/protocol/%v/`
+	ProtocolX   = `/pkg/protocol`
 )
 
 func WithController(lib string) string {

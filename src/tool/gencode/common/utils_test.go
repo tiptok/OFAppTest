@@ -50,3 +50,8 @@ func TestLowCasePaddingUnderline(t *testing.T) {
 		}
 	}
 }
+
+func TestGoModuleName(t *testing.T) {
+	module := GoModuleName("F://go//src//stock")
+	t.Log(module)
+}

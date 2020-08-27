@@ -1,6 +1,12 @@
 package common
 
-import "strings"
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
 
 //单词首字母小写
 func LowFirstCase(input string) string {
@@ -52,4 +58,21 @@ func UpperFirstCase(input string) string {
 		break
 	}
 	return string(rspData)
+}
+
+func GoModuleName(work string) string {
+	path := filepath.Join(work, "go.mod")
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println("mod file not exists:", path, err)
+		return ""
+	}
+	r := bufio.NewReader(file)
+	line, err := r.ReadBytes('\n')
+	if err != nil {
+		fmt.Println("mod file read error:", err)
+		return ""
+	}
+	module := strings.Split(string(line), " ")[1]
+	return strings.Trim(module, "\n")
 }

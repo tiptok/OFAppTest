@@ -58,7 +58,7 @@ func ReadModelFromJsonFile(path string, value interface{}) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Println(path, err)
-		return nil
+		return err
 	}
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 	if err := json.Unmarshal(data, value); err != nil {
