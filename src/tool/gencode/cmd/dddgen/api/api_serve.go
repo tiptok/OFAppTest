@@ -71,7 +71,7 @@ func RunApiSever(ctx *cli.Context) {
 			}
 			err := common.SaveTo(result.Root, result.SaveTo, result.FileName, result.FileData)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println(result.Root, result.SaveTo, result.FileName, err)
 				return
 			}
 		}
@@ -110,6 +110,7 @@ func genFactoryTransaction(options apiSvrOptions, result chan<- *GenResult) (err
 		SaveTo:   constant.WithApplication("factory"),
 		FileName: common.LowCasePaddingUnderline("transaction") + ".go",
 		FileData: buf.Bytes(),
+		NotCover: true,
 	}
 	return nil
 }
@@ -128,6 +129,7 @@ func genBeegoRouterInit(options apiSvrOptions, result chan<- *GenResult) (err er
 		SaveTo:   constant.WithPort(options.Lib),
 		FileName: common.LowCasePaddingUnderline(options.Lib) + ".go",
 		FileData: buf.Bytes(),
+		NotCover: true,
 	}
 	return nil
 }
@@ -146,6 +148,7 @@ func genBeegoMain(options apiSvrOptions, result chan<- *GenResult) (err error) {
 		SaveTo:   "",
 		FileName: "main.go",
 		FileData: buf.Bytes(),
+		NotCover: true,
 	}
 	return nil
 }
@@ -331,7 +334,12 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options apiSvrOptions, resul
 			arrays := strings.Split(ref, "/")
 			modelName := arrays[len(arrays)-1]
 			m := model.CustomerModel{}
-			err := common.ReadModelFromJsonFile(filepath.Join(options.ProjectPath, ref+".json"), &m)
+			//TODO:单个文件
+			pmPath := filepath.Join(options.ProjectPath, ref+".json")
+			if strings.Index(options.ProjectPath, "json") > 0 {
+				pmPath = filepath.Join(strings.Trim(filepath.Dir(options.ProjectPath), "api"), ref+".json")
+			}
+			err := common.ReadModelFromJsonFile(pmPath, &m)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -345,9 +353,6 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options apiSvrOptions, resul
 					"Tags":   fmt.Sprintf("`json:\"%v\"`", common.LowFirstCase(field.Name)),
 				}); err != nil {
 					return err
-				}
-				if i != (len(m.Fields) - 1) {
-					bufFields.WriteString("\n")
 				}
 			}
 

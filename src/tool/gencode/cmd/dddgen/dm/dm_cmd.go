@@ -26,7 +26,12 @@ func DmRun(ctx *cli.Context) {
 
 	dms := ReadDomainModels(filepath.Join(path, "domain-model"))
 	if len(dms) == 0 {
-		return
+		var item = DomainModel{}
+		if err := common.ReadModelFromJsonFile(path, &item); err != nil {
+			fmt.Println(err)
+			return
+		}
+		dms = append(dms, item)
 	}
 	dmGen := DomainModelGenFactory()
 	dmGen.GenCommon(dms, o)
@@ -49,7 +54,7 @@ func DmRun(ctx *cli.Context) {
 // 从描述文件里面读取模型
 func ReadDomainModels(path string) (dms []DomainModel) {
 	wkFunc := func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
+		if info == nil || info.IsDir() {
 			return nil
 		}
 		data, err := ioutil.ReadFile(path)
@@ -169,7 +174,10 @@ func (g *GoPgDomainModelGen) GenCommon(dm []DomainModel, o DMOptions) error {
 		log.Fatal(err)
 		return err
 	}
-
+	if common.FileExists(filepath.Join(o.SaveTo, "/pkg/infrastructure/pg/transaction", filename("transaction", "go"))) {
+		log.Println("【gen code】 jump:", o.SaveTo, "/pkg/infrastructure/pg/transaction", filename("transaction", "go"))
+		return nil
+	}
 	return saveTo(o, "/pkg/infrastructure/pg/transaction", filename("transaction", "go"), []byte(tmplPgTransaction))
 }
 
@@ -184,6 +192,10 @@ func (g *GoPgDomainModelGen) genConstant(dm []DomainModel, o DMOptions) error {
 	m := make(map[string]string)
 	tP.Execute(bufTmpl, m)
 
+	if common.FileExists(filepath.Join(o.SaveTo, filePath, filename("postgresql", "go"))) {
+		log.Println("【gen code】 jump:", o.SaveTo, filePath, filename("postgresql", "go"))
+		return nil
+	}
 	saveTo(o, filePath, filename("postgresql", "go"), bufTmpl.Bytes())
 
 	return nil

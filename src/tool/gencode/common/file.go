@@ -53,6 +53,7 @@ func SaveJsonTo(root string, st string, filename string, obj interface{}, recove
 // 从描述文件里面读取模型
 func ReadModelFromJsonFile(path string, value interface{}) error {
 	if !FileExists(path) {
+		fmt.Println("not exits:", path)
 		return nil
 	}
 	data, err := ioutil.ReadFile(path)
