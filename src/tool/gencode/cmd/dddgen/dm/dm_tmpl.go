@@ -1,4 +1,4 @@
-package dddgen
+package dm
 
 const tmplProtocolDomainModel = `package domain
 
@@ -23,6 +23,15 @@ func (m *{{.Model}}) Identify() interface{} {
 
 const tmplProtocolDomainPgRepository = `package repository
 
+import (
+	"fmt"
+	"{{.Module}}/pkg/domain"
+	"{{.Module}}/pkg/infrastructure/pg/models"
+	"{{.Module}}/pkg/infrastructure/pg/transaction"
+	. "github.com/tiptok/gocomm/pkg/orm/pgx"
+	"github.com/tiptok/gocomm/common"
+)
+
 type {{.Model}}Repository struct {
 	transactionContext *transaction.TransactionContext
 }
@@ -33,7 +42,7 @@ func (repository *{{.Model}}Repository) Save(dm *domain.{{.Model}}) (*domain.{{.
 		m   = &models.{{.Model}}{}
 		tx  = repository.transactionContext.PgTx
 	)
-	if err = GobModelTransform(m, dm); err != nil {
+	if err = common.GobModelTransform(m, dm); err != nil {
 		return nil, err
 	}
 	if dm.Identify() == nil {
@@ -96,7 +105,7 @@ func (repository *{{.Model}}Repository) Find(queryOptions map[string]interface{}
 
 func (repository *{{.Model}}Repository) transformPgModelToDomainModel({{.Model}}Model *models.{{.Model}}) (*domain.{{.Model}}, error) {
 	m := &domain.{{.Model}}{}
-	err := GobModelTransform(m, {{.Model}}Model)
+	err := common.GobModelTransform(m, {{.Model}}Model)
 	return m, err
 }
 
@@ -159,6 +168,8 @@ import (
 	"fmt"
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
+	"{{.Module}}/pkg/constant"
+	"{{.Module}}/pkg/infrastructure/pg/models"
 )
 
 var DB *pg.DB

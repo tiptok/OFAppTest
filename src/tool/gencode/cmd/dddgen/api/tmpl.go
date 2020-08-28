@@ -78,11 +78,30 @@ func init() {
 
 const beegoRouter = `	beego.Router("{{.Url}}", &controllers.{{.Controller}}{}, "{{.HttpMethod}}:{{.Method}}")`
 
+const beegoRouterInit = `package beego
+
+import (
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/plugins/cors"
+	_ "{{.Module}}/pkg/port/beego/routers"
+)
+
+func init(){
+	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin"},
+		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},
+		AllowCredentials: true,
+	}))
+}`
+
 const application = `package {{.Package}}
 
 import (
 	"github.com/tiptok/gocomm/pkg/log"
 	"{{.Module}}/pkg/protocol"
+	"{{.Module}}/pkg/application/factory"
 	protocolx "{{.Module}}/pkg/protocol/{{.Package}}"
 )
 
@@ -97,6 +116,7 @@ const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, requ
 	)
 	rsp = &protocolx.{{.Method}}Response{}
 	if err = transactionContext.StartTransaction(); err != nil {
+		log.Error(err)
 		return nil, err
 	}
 	defer func() {
@@ -134,7 +154,10 @@ type BaseController struct {
 }
 
 func (controller BaseController) JsonUnmarshal(v interface{}) error {
-	body := controller.Ctx.Input.GetData("requestBody").([]byte)
+	body := controller.Ctx.Input.RequestBody
+	if len(body)==0{
+		body = []byte("{}")
+	}
 	return json.Unmarshal(body, v)
 }
 
@@ -183,3 +206,33 @@ func (this *BaseController) GetRequestHeader(ctx *context.Context) *protocol.Req
 }
 
 `
+const pgFactoryTransaction = `package factory
+
+import (
+	"{{.Module}}/pkg/infrastructure/pg"
+	"{{.Module}}/pkg/infrastructure/pg/transaction"
+)
+
+func CreateTransactionContext(options map[string]interface{}) (*transaction.TransactionContext, error) {
+	return &transaction.TransactionContext{
+		PgDd: pg.DB,
+	}, nil
+}
+`
+
+const beegoMain = `package main
+
+import (
+	"github.com/astaxie/beego"
+	_ "{{.Module}}/pkg/constant"
+	_ "{{.Module}}/pkg/infrastructure/pg"
+	 _ "{{.Module}}/pkg/port/beego"
+)
+
+func main() {
+	defer func() {
+
+	}()
+	beego.BConfig.CopyRequestBody = true
+	beego.Run()
+}`

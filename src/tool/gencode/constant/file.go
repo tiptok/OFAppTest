@@ -7,7 +7,8 @@ const (
 	ApiProtocol = `/api/protocol`
 
 	Controller  = `/pkg/port/%v/controllers`
-	Router      = `/pkg/port/%v/router`
+	Port        = `/pkg/port/%v`
+	Router      = `/pkg/port/%v/routers`
 	Application = `/pkg/application/%v`
 	Protocol    = `/pkg/protocol/%v/`
 	ProtocolX   = `/pkg/protocol`
@@ -18,6 +19,13 @@ func WithController(lib string) string {
 		return fmt.Sprintf(Controller, "beego")
 	}
 	return fmt.Sprintf(Controller, lib)
+}
+
+func WithPort(lib string) string {
+	if len(lib) == 0 {
+		return fmt.Sprintf(Router, "beego")
+	}
+	return fmt.Sprintf(Port, lib)
 }
 
 func WithRouter(lib string) string {

@@ -2,11 +2,13 @@ package dddgen
 
 import (
 	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd/dddgen/api"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd/dddgen/dm"
 	"github.com/urfave/cli"
 )
 
 func Commands() []cli.Command {
 	return []cli.Command{
+		// dm
 		{
 			Name:  "dm",
 			Usage: "Create domain-model; example: gencode dm -p Path -st SaveTo -dp DataPersistence -lang Language(go)",
@@ -32,8 +34,9 @@ func Commands() []cli.Command {
 					Value: "go",
 				},
 			},
-			Action: dmrun,
+			Action: dm.DmRun,
 		},
+		// api-dsl
 		{
 			Name:  "api-dsl",
 			Usage: "Create api dsl file; example: api-dsl -c Controller -url /auth/login -m post",
@@ -61,6 +64,7 @@ func Commands() []cli.Command {
 			},
 			Action: api.RunApiDSL,
 		},
+		// api-svr
 		{
 			Name:  "api-svr",
 			Usage: "Create api-svr server; example: gencode api -p Path -st SaveTo -lang Language(go) -lib beego",

@@ -26,6 +26,7 @@ func RunApiSever(ctx *cli.Context) {
 	o.SaveTo = ctx.String("st")
 	o.Language = ctx.String("lang")
 	o.Lib = ctx.String("lib")
+	o.ModulePath = common.GoModuleName(o.SaveTo)
 
 	if _, ok := o.Valid(); !ok {
 		return
@@ -35,26 +36,30 @@ func RunApiSever(ctx *cli.Context) {
 		fmt.Println("read api models err:", err)
 		return
 	}
-	for i := 0; i < len(controllers); i++ {
-		c := controllers[i]
-		if err := serveGen.GenController(c, o, results); err != nil {
-			fmt.Println("gen controller error:", err)
-			return
+	genFactoryTransaction(o, results)
+	genDefaultByLib(o, results)
+	go func() {
+		for i := 0; i < len(controllers); i++ {
+			c := controllers[i]
+			if err := serveGen.GenController(c, o, results); err != nil {
+				fmt.Println("gen controller error:", err)
+				return
+			}
+			if err := serveGen.GenRouter(c, o, results); err != nil {
+				fmt.Println("gen router error:", err)
+				return
+			}
+			if err := serveGen.GenApplication(c, o, results); err != nil {
+				fmt.Println("gen application error:", err)
+				return
+			}
+			if err := serveGen.GenProtocol(c, o, results); err != nil {
+				fmt.Println("gen protocol error:", err)
+				return
+			}
 		}
-		if err := serveGen.GenRouter(c, o, results); err != nil {
-			fmt.Println("gen router error:", err)
-			return
-		}
-		if err := serveGen.GenApplication(c, o, results); err != nil {
-			fmt.Println("gen application error:", err)
-			return
-		}
-		if err := serveGen.GenProtocol(c, o, results); err != nil {
-			fmt.Println("gen protocol error:", err)
-			return
-		}
-	}
-	close(results)
+		close(results)
+	}()
 	var done sync.WaitGroup
 	done.Add(1)
 	go func() {
@@ -73,6 +78,76 @@ func RunApiSever(ctx *cli.Context) {
 		done.Done()
 	}()
 	done.Wait()
+}
+func genDefaultByLib(options apiSvrOptions, result chan<- *GenResult) {
+	switch options.Lib {
+	case "beego":
+		if err := genBeegoRouterInit(options, result); err != nil {
+			fmt.Println(err)
+		}
+		if err := genBeegoMain(options, result); err != nil {
+			fmt.Println(err)
+		}
+		break
+	}
+}
+func genDefaultByPersistence(options apiSvrOptions, result chan<- *GenResult) {
+
+}
+
+// gen /application/transaction  by persistence
+func genFactoryTransaction(options apiSvrOptions, result chan<- *GenResult) (err error) {
+	buf := bytes.NewBuffer(nil)
+
+	if err := common.ExecuteTmpl(buf, pgFactoryTransaction, map[string]interface{}{
+		"Package": "transaction",
+		"Module":  options.ModulePath,
+	}); err != nil {
+		return err
+	}
+	result <- &GenResult{
+		Root:     options.SaveTo,
+		SaveTo:   constant.WithApplication("factory"),
+		FileName: common.LowCasePaddingUnderline("transaction") + ".go",
+		FileData: buf.Bytes(),
+	}
+	return nil
+}
+
+// gen /pkg/port/beego/router  by lib
+func genBeegoRouterInit(options apiSvrOptions, result chan<- *GenResult) (err error) {
+	buf := bytes.NewBuffer(nil)
+
+	if err := common.ExecuteTmpl(buf, beegoRouterInit, map[string]interface{}{
+		"Module": options.ModulePath,
+	}); err != nil {
+		return err
+	}
+	result <- &GenResult{
+		Root:     options.SaveTo,
+		SaveTo:   constant.WithPort(options.Lib),
+		FileName: common.LowCasePaddingUnderline(options.Lib) + ".go",
+		FileData: buf.Bytes(),
+	}
+	return nil
+}
+
+// gen main.go by lib
+func genBeegoMain(options apiSvrOptions, result chan<- *GenResult) (err error) {
+	buf := bytes.NewBuffer(nil)
+
+	if err := common.ExecuteTmpl(buf, beegoMain, map[string]interface{}{
+		"Module": options.ModulePath,
+	}); err != nil {
+		return err
+	}
+	result <- &GenResult{
+		Root:     options.SaveTo,
+		SaveTo:   "",
+		FileName: "main.go",
+		FileData: buf.Bytes(),
+	}
+	return nil
 }
 
 func ReadApiModels(p string) (controllers []Controller, err error) {
@@ -127,9 +202,8 @@ type GoBeeApiServeGen struct{}
 
 func (g GoBeeApiServeGen) GenController(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
 	buf := bytes.NewBuffer(nil)
-	module := common.GoModuleName(options.SaveTo)
 	if err := common.ExecuteTmpl(buf, beegonController, map[string]interface{}{
-		"Module":          module,
+		"Module":          options.ModulePath,
 		"ControllerLower": common.LowCasePaddingUnderline(c.Controller),
 		"Controller":      c.Controller,
 	}); err != nil {
@@ -162,7 +236,7 @@ func (g GoBeeApiServeGen) GenController(c Controller, options apiSvrOptions, res
 
 	baseBuf := bytes.NewBuffer(nil)
 	if err := common.ExecuteTmpl(baseBuf, beegoBaseController, map[string]interface{}{
-		"Module": module,
+		"Module": options.ModulePath,
 	}); err != nil {
 		return err
 	}
@@ -177,7 +251,6 @@ func (g GoBeeApiServeGen) GenController(c Controller, options apiSvrOptions, res
 }
 func (g GoBeeApiServeGen) GenRouter(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
 	buf := bytes.NewBuffer(nil)
-	module := common.GoModuleName(options.SaveTo)
 	bufRouters := bytes.NewBuffer(nil)
 	for i := 0; i < len(c.Paths); i++ {
 		p := c.Paths[i]
@@ -197,7 +270,7 @@ func (g GoBeeApiServeGen) GenRouter(c Controller, options apiSvrOptions, result 
 	}
 
 	if err := common.ExecuteTmpl(buf, beegoRouters, map[string]interface{}{
-		"Module":  module,
+		"Module":  options.ModulePath,
 		"Routers": bufRouters.String(),
 	}); err != nil {
 		return err
@@ -213,7 +286,6 @@ func (g GoBeeApiServeGen) GenRouter(c Controller, options apiSvrOptions, result 
 }
 func (g GoBeeApiServeGen) GenApplication(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
 	buf := bytes.NewBuffer(nil)
-	module := common.GoModuleName(options.SaveTo)
 	bufMethods := bytes.NewBuffer(nil)
 	for i := 0; i < len(c.Paths); i++ {
 		bufMethods.WriteString("\n\n")
@@ -229,7 +301,7 @@ func (g GoBeeApiServeGen) GenApplication(c Controller, options apiSvrOptions, re
 
 	if err := common.ExecuteTmpl(buf, application, map[string]interface{}{
 		"Package": common.LowCasePaddingUnderline(c.Controller),
-		"Module":  module,
+		"Module":  options.ModulePath,
 		"Methods": bufMethods.String(),
 	}); err != nil {
 		return err
@@ -331,6 +403,8 @@ type Operation struct {
 
 // 服务参数
 type apiSvrOptions struct {
+	// mod 路径
+	ModulePath string
 	// 项目路径
 	ProjectPath string
 	// 保存路径

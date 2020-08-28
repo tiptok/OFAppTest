@@ -1,4 +1,4 @@
-package dddgen
+package dm
 
 import (
 	"bytes"
@@ -13,14 +13,16 @@ import (
 	"text/template"
 )
 
-func dmrun(ctx *cli.Context) {
+func DmRun(ctx *cli.Context) {
 	var (
 		path string    = ctx.String("p")
 		o    DMOptions = DMOptions{}
 	)
+	o.ProjectPath = path
 	o.SaveTo = ctx.String("st")
 	o.DataPersistence = ctx.String("dp")
 	o.Language = ctx.String("lang")
+	o.ModulePath = common.GoModuleName(o.SaveTo)
 
 	dms := ReadDomainModels(filepath.Join(path, "domain-model"))
 	if len(dms) == 0 {
@@ -73,9 +75,11 @@ func DomainModelGenFactory() DomainModelGen {
 }
 
 type DMOptions struct {
+	ProjectPath     string
 	SaveTo          string
 	DataPersistence string
 	Language        string
+	ModulePath      string
 }
 type DomainModelGen interface {
 	GenDomainModel(dm DomainModel, o DMOptions) error
@@ -122,6 +126,7 @@ func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
 	bufTmpl := bytes.NewBuffer(nil)
 	m := make(map[string]string)
 	m["Model"] = dm.Name
+	m["Module"] = common.GoModuleName(o.SaveTo)
 	tP.Execute(bufTmpl, m)
 
 	return saveTo(o, filePath, filename("Pg"+dm.Name+"Repository", "go"), bufTmpl.Bytes())
@@ -200,6 +205,7 @@ func (g *GoPgDomainModelGen) genPgInit(dm []DomainModel, o DMOptions) error {
 	bufTmpl := bytes.NewBuffer(nil)
 	m := make(map[string]string)
 	m["models"] = buf.String()
+	m["Module"] = o.ModulePath
 	tP.Execute(bufTmpl, m)
 
 	saveTo(o, filePath, filename("init", "go"), bufTmpl.Bytes())

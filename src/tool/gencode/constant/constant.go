@@ -16,3 +16,10 @@ func init() {
 		SAVE_PATH = os.Getenv("SAVE_PATH")
 	}
 }
+
+type Persitence string
+
+var (
+	MYSQL      Persitence = "mysql"
+	POSTGRESQL Persitence = "Postgresql"
+)
