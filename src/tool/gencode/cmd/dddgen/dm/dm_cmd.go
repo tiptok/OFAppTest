@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tiptok/OFAppTest/src/tool/gencode/common"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/constant"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
@@ -34,6 +35,11 @@ func DmRun(ctx *cli.Context) {
 		if err := dmGen.GenDomainModel(dms[i], o); err != nil {
 			log.Println(dms[i].Name, err)
 			return
+		}
+		// 值对象不需要生成持久模型/仓库模型
+		if dms[i].ValueType != string(constant.DomainModel) {
+			log.Println("jump", dms[i].ValueType, constant.DomainModel)
+			continue
 		}
 		if err := dmGen.GenPersistence(dms[i], o); err != nil {
 			log.Println(dms[i].Name, err)
@@ -110,9 +116,19 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 	m := make(map[string]string)
 	m["Model"] = dm.Name
 	m["Items"] = buf.String()
+	m["Desc"] = dm.Desc
+	if len(dm.Desc) == 0 {
+		m["Desc"] = dm.Name
+	}
 	tP.Execute(bufTmpl, m)
-
-	saveTo(o, filePath, filename(dm.Name, "go"), bufTmpl.Bytes())
+	fileName := dm.Name
+	if dm.ValueType == string(constant.DomainModel) {
+		fileName = "Do" + dm.Name
+	}
+	if dm.ValueType == string(constant.DomainValue) {
+		fileName = "Dv" + dm.Name
+	}
+	saveTo(o, filePath, filename(fileName, "go"), bufTmpl.Bytes())
 	return nil
 }
 func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
@@ -152,6 +168,10 @@ func (g *GoPgDomainModelGen) GenPersistence(dm DomainModel, o DMOptions) error {
 	m := make(map[string]string)
 	m["Model"] = dm.Name
 	m["Items"] = buf.String()
+	m["Desc"] = dm.Desc
+	if len(dm.Desc) == 0 {
+		m["Desc"] = dm.Name
+	}
 	tP.Execute(bufTmpl, m)
 
 	return saveTo(o, filePath, filename("Pg"+dm.Name, "go"), bufTmpl.Bytes())
@@ -237,7 +257,8 @@ func filename(filename, suffix string) string {
 //领域模型
 type DomainModel struct {
 	Name      string   `json:"name"`
-	ValueType string   `json:"type"`
+	ValueType string   `json:"value_type"`
+	Desc      string   `json:"desc"`
 	Fields    []*field `json:"fields"`
 }
 type field struct {

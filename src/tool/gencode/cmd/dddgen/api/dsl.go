@@ -58,8 +58,8 @@ func RunApiDSL(ctx *cli.Context) {
 		Method:   o.Method,
 		Summary:  "测试",
 		Content:  "json",
-		Request:  refObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowFirstCase(controller.Controller), RequestProtocol}, "/")},
-		Response: refObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowFirstCase(controller.Controller), ResponseProtocol}, "/")},
+		Request:  refObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowCasePaddingUnderline(controller.Controller), RequestProtocol}, "/")},
+		Response: refObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowCasePaddingUnderline(controller.Controller), ResponseProtocol}, "/")},
 	}
 	fmt.Println(filepath.Join(constant.ApiProtocol, controller.Controller, RequestProtocol), constant.ApiProtocol, controller.Controller, RequestProtocol)
 	fmt.Println(path.Request.RefPath)

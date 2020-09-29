@@ -2,6 +2,7 @@ package dm
 
 const tmplProtocolDomainModel = `package domain
 
+// {{.Desc}}
 type {{.Model}} struct {
 {{.Items}}
 }
@@ -119,6 +120,7 @@ func New{{.Model}}Repository(transactionContext *transaction.TransactionContext)
 
 const tmplProtocolPgModel = `package models
 
+// {{.Desc}}
 type {{.Model}} struct {
 {{.Items}}
 }

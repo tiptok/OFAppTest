@@ -23,3 +23,10 @@ var (
 	MYSQL      Persitence = "mysql"
 	POSTGRESQL Persitence = "Postgresql"
 )
+
+type DomainType string
+
+var (
+	DomainModel DomainType = "domain-model"
+	DomainValue DomainType = "domain-value"
+)
