@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/tiptok/OFAppTest/src/tool/gencode/common"
 	"github.com/tiptok/OFAppTest/src/tool/gencode/constant"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/model"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -81,11 +83,7 @@ func DomainModelGenFactory() DomainModelGen {
 }
 
 type DMOptions struct {
-	ProjectPath     string
-	SaveTo          string
-	DataPersistence string
-	Language        string
-	ModulePath      string
+	model.SvrOptions
 }
 type DomainModelGen interface {
 	GenDomainModel(dm DomainModel, o DMOptions) error
@@ -257,10 +255,21 @@ func filename(filename, suffix string) string {
 //领域模型
 type DomainModel struct {
 	Name      string   `json:"name"`
-	ValueType string   `json:"value_type"`
+	ValueType string   `json:"value_type"` // domain-model 领域模型  domain-value值对象 property
+	Property  []string `json:"property"`   // restful
 	Desc      string   `json:"desc"`
 	Fields    []*field `json:"fields"`
 }
+
+func (dm DomainModel) NeedRestful() bool {
+	for _, v := range dm.Property {
+		if strings.TrimSpace(v) == "restful" {
+			return true
+		}
+	}
+	return false
+}
+
 type field struct {
 	Name      string `json:"name"`
 	TypeValue string `json:"type"`

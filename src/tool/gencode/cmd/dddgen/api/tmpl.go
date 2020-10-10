@@ -40,21 +40,20 @@ type {{.Controller}}Controller struct {
 const beegoControllerMethod = `// {{.Method}} 
 // {{.Desc}}
 func (this *{{.ControllerName}}Controller) {{.Method}}() {
-	var msg *protocol.ResponseMessage
+	var (
+		msg *protocol.ResponseMessage
+		svr ={{.Application}}.New{{.ControllerName}}Service(nil)
+		request *protocolx.{{.RequestModel}}
+	)
 	defer func() {
 		this.Resp(msg)
 	}()
-	var request *protocolx.{{.RequestModel}}
 	if err := this.JsonUnmarshal(&request); err != nil {
 		msg = protocol.BadRequestParam(1)
 		return
 	}
-	if b, m := this.Valid(request); !b {
-		msg = m
-		return
-	}
 	header := this.GetRequestHeader(this.Ctx)
-	data, err := {{.Application}}.{{.Method}}(header, request)
+	data, err := svr.{{.Method}}(header, request)
 	if err != nil {
 		log.Error(err)
 	}
@@ -96,7 +95,7 @@ func init(){
 	}))
 }`
 
-const application = `package {{.Package}}
+const Application = `package {{.Package}}
 
 import (
 	"github.com/tiptok/gocomm/pkg/log"
@@ -105,16 +104,29 @@ import (
 	protocolx "{{.Module}}/pkg/protocol/{{.Package}}"
 )
 
+type {{.Service}}Service struct {
+	
+}
+
 {{.Methods}}
+
+
+func New{{.Service}}Service(options map[string]interface{}) *{{.Service}}Service {
+	svr := &{{.Service}}Service{}
+	return svr
+}
 `
 
 //Method Login
 //
-const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, request *protocolx.{{.Method}}Request) (rsp *protocolx.{{.Method}}Response, err error) {
+const ApplicationMethod = `func(svr *{{.Service}}Service){{.Method}}(header *protocol.RequestHeader, request *protocolx.{{.Method}}Request) (rsp *protocolx.{{.Method}}Response, err error) {
 	var (
 		transactionContext, _          = factory.CreateTransactionContext(nil)
 	)
 	rsp = &protocolx.{{.Method}}Response{}
+	if err=request.ValidateCommand();err!=nil{
+		err = protocol.NewCustomMessage(2,err.Error())
+	}
 	if err = transactionContext.StartTransaction(); err != nil {
 		log.Error(err)
 		return nil, err
@@ -122,6 +134,8 @@ const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, requ
 	defer func() {
 		transactionContext.RollbackTransaction()
 	}()
+
+{{.Logic}}
 	
 	err = transactionContext.CommitTransaction()
 	return
@@ -129,8 +143,27 @@ const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, requ
 
 const protocolModel = `package {{.Package}}
 
+import (
+	"fmt"
+	"github.com/astaxie/beego/validation"
+)
+
 type {{.Model}} struct {
 {{.Fields}}
+}
+
+func ({{.Model}} *{{.Model}}) ValidateCommand() error {
+	valid := validation.Validation{}
+	b, err := valid.Valid({{.Model}})
+	if err != nil {
+		return err
+	}
+	if !b {
+		for _, validErr := range valid.Errors {
+			return fmt.Errorf("%s  %s", validErr.Key, validErr.Message)
+		}
+	}
+	return nil
 }
 `
 

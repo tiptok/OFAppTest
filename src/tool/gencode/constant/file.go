@@ -12,6 +12,7 @@ const (
 	Application = `/pkg/application/%v`
 	Protocol    = `/pkg/protocol/%v/`
 	ProtocolX   = `/pkg/protocol`
+	Domain      = `/pkg/domain`
 )
 
 func WithController(lib string) string {

@@ -12,3 +12,18 @@ type field struct {
 	Desc      string `json:"desc"`
 	Required  bool   `json:"required"`
 }
+
+type SvrOptions struct {
+	// mod 路径
+	ModulePath string
+	// 项目路径
+	ProjectPath string
+	// 保存路径
+	SaveTo string
+	// 服务语言
+	Language string
+	// 框架
+	Lib string
+	// 持久化
+	DataPersistence string
+}

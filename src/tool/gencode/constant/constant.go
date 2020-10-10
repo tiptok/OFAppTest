@@ -17,16 +17,30 @@ func init() {
 	}
 }
 
-type Persitence string
+type Persistence string
 
-var (
-	MYSQL      Persitence = "mysql"
-	POSTGRESQL Persitence = "Postgresql"
+const (
+	MYSQL      Persistence = "mysql"
+	POSTGRESQL Persistence = "Postgresql"
 )
 
 type DomainType string
 
-var (
+const (
 	DomainModel DomainType = "domain-model"
 	DomainValue DomainType = "domain-value"
+)
+
+type HttpLib string
+
+const (
+	BEEGO HttpLib = "beego"
+	GIH   HttpLib = "gin"
+)
+
+type OperatorType string
+
+const (
+	COMMAND OperatorType = "command"
+	QUERY   OperatorType = "query"
 )
