@@ -111,7 +111,7 @@ func GenApiServer(serveGen ServeGen, o model.SvrOptions, controllers []Controlle
 	go func() {
 		for result := range results {
 			filePath := filepath.Join(result.Root, result.SaveTo, result.FileName)
-			if common.FileExists(filePath) && result.NotCover {
+			if common.FileExists(filePath) && result.CoverExists {
 				log.Println("【gen code】 jump:", filePath)
 				continue
 			}
@@ -153,11 +153,11 @@ func genFactoryTransaction(options model.SvrOptions, result chan<- *GenResult) (
 		return err
 	}
 	result <- &GenResult{
-		Root:     options.SaveTo,
-		SaveTo:   constant.WithApplication("factory"),
-		FileName: common.LowCasePaddingUnderline("transaction") + ".go",
-		FileData: buf.Bytes(),
-		NotCover: true,
+		Root:        options.SaveTo,
+		SaveTo:      constant.WithApplication("factory"),
+		FileName:    common.LowCasePaddingUnderline("transaction") + ".go",
+		FileData:    buf.Bytes(),
+		CoverExists: true,
 	}
 	return nil
 }
@@ -289,11 +289,11 @@ func (g GoBeeApiServeGen) GenController(c Controller, options model.SvrOptions, 
 		return err
 	}
 	result <- &GenResult{
-		Root:     options.SaveTo,
-		SaveTo:   constant.WithController(options.Lib),
-		FileName: "base.go",
-		FileData: baseBuf.Bytes(),
-		NotCover: true,
+		Root:        options.SaveTo,
+		SaveTo:      constant.WithController(options.Lib),
+		FileName:    "base.go",
+		FileData:    baseBuf.Bytes(),
+		CoverExists: true,
 	}
 	return nil
 }
@@ -388,7 +388,7 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options model.SvrOptions, re
 			//fmt.Println(filepath.Join(options.ProjectPath,ref),m.Name,len(m.Fields))
 			for i := range m.Fields {
 				field := m.Fields[i]
-				if err := common.ExecuteTmpl(bufFields, protocolField, map[string]interface{}{
+				if err := common.ExecuteTmpl(bufFields, ProtocolField, map[string]interface{}{
 					"Desc":   field.Desc,
 					"Column": field.Name,
 					"Type":   field.TypeValue,
@@ -401,7 +401,7 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options model.SvrOptions, re
 				}
 			}
 
-			if err := common.ExecuteTmpl(buf, protocolModel, map[string]interface{}{
+			if err := common.ExecuteTmpl(buf, ProtocolModel, map[string]interface{}{
 				"Package": common.LowCasePaddingUnderline(c.Controller),
 				"Model":   modelName,
 				"Fields":  bufFields.String(),
@@ -432,21 +432,21 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options model.SvrOptions, re
 	}
 
 	result <- &GenResult{
-		Root:     options.SaveTo,
-		SaveTo:   constant.ProtocolX,
-		FileName: "protocol.go",
-		FileData: []byte(protocolx),
-		NotCover: true,
+		Root:        options.SaveTo,
+		SaveTo:      constant.ProtocolX,
+		FileName:    "protocol.go",
+		FileData:    []byte(protocolx),
+		CoverExists: true,
 	}
 	return nil
 }
 
 type GenResult struct {
-	Root     string
-	SaveTo   string
-	FileName string
-	FileData []byte
-	NotCover bool //true=覆盖 false=不覆盖
+	Root        string
+	SaveTo      string
+	FileName    string
+	FileData    []byte
+	CoverExists bool //true=覆盖 false=不覆盖
 }
 type Operation struct {
 	Url      ApiPath

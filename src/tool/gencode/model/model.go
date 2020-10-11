@@ -3,10 +3,10 @@ package model
 type CustomerModel struct {
 	Name      string  `json:"name"`
 	ValueType string  `json:"value_type"`
-	Fields    []field `json:"fields"`
+	Fields    []Field `json:"fields"`
 }
 
-type field struct {
+type Field struct {
 	Name      string `json:"name"`
 	TypeValue string `json:"type"`
 	Desc      string `json:"desc"`

@@ -104,7 +104,7 @@ func (g GoBeeDomainApiServeGen) GenApplication(c api.Controller, options model.S
 		p := c.Paths[i]
 		pName, _, _ := p.ParsePath()
 		//log.Println(pName,req,rsp)
-		if err := common.ExecuteTmpl(bufMethods, api.ApplicationMethod, map[string]interface{}{
+		if err := common.ExecuteTmpl(bufMethods, applicationMethod, map[string]interface{}{
 			"Method":  common.UpperFirstCase(pName),
 			"Service": c.Controller,
 			"Logic":   g.getApplicationLogic(c, p, options),
@@ -131,6 +131,74 @@ func (g GoBeeDomainApiServeGen) GenApplication(c api.Controller, options model.S
 	return nil
 }
 
+func (g GoBeeDomainApiServeGen) GenProtocol(c api.Controller, options model.SvrOptions, result chan<- *api.GenResult) error {
+	domainPath := filepath.Join(options.ProjectPath, "domain-model", common.LowCasePaddingUnderline(c.Controller)+".json")
+	models := dm.ReadDomainModels(domainPath)
+	if len(models) == 0 {
+		return nil
+	}
+	domainModel := models[0]
+
+	for i := 0; i < len(c.Paths); i++ {
+
+		p := c.Paths[i]
+
+		parseModel := func(refPath string) error {
+			buf := bytes.NewBuffer(nil)
+			bufFields := bytes.NewBuffer(nil)
+			ref := refPath
+			arrays := strings.Split(ref, "/")
+			modelName := arrays[len(arrays)-1]
+			fields := g.getProtocolField(c, p, options)
+			for i, field := range fields {
+				if strings.HasPrefix(p.ServiceName, "List") {
+					continue
+				}
+				if err := common.ExecuteTmpl(bufFields, api.ProtocolField, map[string]interface{}{
+					"Desc":   field.Desc,
+					"Column": field.Name,
+					"Type":   field.TypeValue,
+					"Tags":   fmt.Sprintf("`json:\"%v\"`", common.LowFirstCase(field.Name)),
+				}); err != nil {
+					return err
+				}
+				if i != (len(domainModel.Fields) - 1) {
+					bufFields.WriteString("\n")
+				}
+			}
+
+			if err := common.ExecuteTmpl(buf, api.ProtocolModel, map[string]interface{}{
+				"Package": common.LowCasePaddingUnderline(c.Controller),
+				"Model":   modelName,
+				"Fields":  bufFields.String(),
+			}); err != nil {
+				return err
+			}
+			fileName := common.LowCasePaddingUnderline(modelName) + ".go"
+			if len(p.Operator) > 0 {
+				fileName = p.Operator + "_" + fileName
+			}
+			result <- &api.GenResult{
+				Root:     options.SaveTo,
+				SaveTo:   constant.WithProtocol(common.LowCasePaddingUnderline(c.Controller)),
+				FileName: fileName,
+				FileData: buf.Bytes(),
+			}
+			return nil
+		}
+
+		if err := parseModel(p.Request.RefPath); err != nil {
+			fmt.Println(err)
+			return err
+		}
+		if err := parseModel(p.Response.RefPath); err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+	return nil
+}
+
 func (g GoBeeDomainApiServeGen) getApplicationLogic(c api.Controller, path api.ApiPath, options model.SvrOptions) string {
 	buf := bytes.NewBuffer(nil)
 	domainPath := filepath.Join(options.ProjectPath, "domain-model", common.LowCasePaddingUnderline(c.Controller)+".json")
@@ -152,31 +220,88 @@ func (g GoBeeDomainApiServeGen) getApplicationLogic(c api.Controller, path api.A
 			buf.WriteString(fmt.Sprintf("		%v: request.%v,\n", field.Name, field.Name))
 		}
 		buf.WriteString("	}\n")
-		buf.WriteString(fmt.Sprintf(`	
-    var %vRepository,_ = factory.Create%vRepository(transactionContext)
-	if m,err:=%vRepository.Save(new%v);err!=nil{
+		buf.WriteString(strings.ReplaceAll(`	
+    var DomainRepository,_ = factory.CreateDomainRepository(transactionContext)
+	if m,err:=DomainRepository.Save(newDomain);err!=nil{
 		return nil,err
 	}else{
 		rsp = m
-	}`, c.Controller, c.Controller, c.Controller, c.Controller))
+	}`, "Domain", c.Controller))
 		return buf.String()
 	}
 	if strings.HasPrefix(path.ServiceName, "Update") {
-		buf.WriteString(fmt.Sprintf("new%v:=&domain.%v{", c.Controller, c.Controller))
-		for _, field := range domainModel.Fields {
-			if containAnyInArray(field.Name, "Id") {
-				continue
-			}
-			if containAnyInArray(field.Name, "At", "Time") {
-				buf.WriteString(fmt.Sprintf("%v: time.Now()", field.Name))
-				continue
-			}
-			buf.WriteString(fmt.Sprintf("%v: request.%v", field.Name, field.Name))
-		}
-		buf.WriteString("}")
+		common.ExecuteTmpl(buf, `	
+    var {{.Domain}}Repository,_ = factory.Create{{.Domain}}Repository(transactionContext)
+	var {{.domain}} *domain.{{.Domain}}
+	if {{.domain}},err={{.Domain}}Repository.FindOne(common.ObjectToMap(request));err!=nil{
+		return
+	}
+	if err ={{.domain}}.Update(common.ObjectToMap(request));err!=nil{
+		return
+	}
+	if {{.domain}},err = {{.Domain}}Repository.Save({{.domain}});err!=nil{
+		return
+	}`, map[string]interface{}{"Domain": c.Controller, "domain": common.LowFirstCase(c.Controller)})
+		return buf.String()
+	}
+	if strings.HasPrefix(path.ServiceName, "Get") {
+		common.ExecuteTmpl(buf, `	
+    var {{.Domain}}Repository,_ = factory.Create{{.Domain}}Repository(transactionContext)
+	var {{.domain}} *domain.{{.Domain}}
+	if {{.domain}},err={{.Domain}}Repository.FindOne(common.ObjectToMap(request));err!=nil{
+		return
+	}
+	rsp = userInfo`, map[string]interface{}{"Domain": c.Controller, "domain": common.LowFirstCase(c.Controller)})
+		return buf.String()
+	}
+	if strings.HasPrefix(path.ServiceName, "Delete") {
+		common.ExecuteTmpl(buf, `	
+    var {{.Domain}}Repository,_ = factory.Create{{.Domain}}Repository(transactionContext)
+	var {{.domain}} *domain.{{.Domain}}
+	if {{.domain}},err={{.Domain}}Repository.FindOne(common.ObjectToMap(request));err!=nil{
+		return
+	}
+	if {{.domain}},err = {{.Domain}}Repository.Remove({{.domain}});err!=nil{
+		return 
+	}
+	rsp = {{.domain}}`, map[string]interface{}{"Domain": c.Controller, "domain": common.LowFirstCase(c.Controller)})
+		return buf.String()
+	}
+	if strings.HasPrefix(path.ServiceName, "List") {
+		common.ExecuteTmpl(buf, `
+	var {{.Domain}}Repository,_ = factory.Create{{.Domain}}Repository(transactionContext)
+	var {{.domain}} []*domain.{{.Domain}}
+	var total int64
+	if total,{{.domain}},err={{.Domain}}Repository.Find(common.ObjectToMap(request));err!=nil{
+		return
+	}
+	rsp =map[string]interface{}{
+		"total":total,
+		"list":{{.domain}},
+	}`, map[string]interface{}{"Domain": c.Controller, "domain": common.LowFirstCase(c.Controller)})
 		return buf.String()
 	}
 	return buf.String()
+}
+
+func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiPath, options model.SvrOptions) []*model.Field {
+	rsp := make([]*model.Field, 0)
+	if strings.HasPrefix(path.ServiceName, "Create") {
+
+	}
+	if strings.HasPrefix(path.ServiceName, "Update") {
+
+	}
+	if strings.HasPrefix(path.ServiceName, "Get") {
+
+	}
+	if strings.HasPrefix(path.ServiceName, "Delete") {
+
+	}
+	if strings.HasPrefix(path.ServiceName, "List") {
+
+	}
+	return rsp
 }
 
 func containAnyInArray(c string, array ...string) bool {

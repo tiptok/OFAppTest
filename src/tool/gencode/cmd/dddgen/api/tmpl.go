@@ -141,7 +141,7 @@ const ApplicationMethod = `func(svr *{{.Service}}Service){{.Method}}(header *pro
 	return
 }`
 
-const protocolModel = `package {{.Package}}
+const ProtocolModel = `package {{.Package}}
 
 import (
 	"fmt"
@@ -167,7 +167,7 @@ func ({{.Model}} *{{.Model}}) ValidateCommand() error {
 }
 `
 
-const protocolField = `	// {{.Desc}}
+const ProtocolField = `	// {{.Desc}}
 	{{.Column}} {{.Type}} {{.Tags}}
 `
 
