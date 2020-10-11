@@ -168,8 +168,7 @@ func ({{.Model}} *{{.Model}}) ValidateCommand() error {
 `
 
 const ProtocolField = `	// {{.Desc}}
-	{{.Column}} {{.Type}} {{.Tags}}
-`
+	{{.Column}} {{.Type}} {{.Tags}}`
 
 const beegoBaseController = `package controllers
 

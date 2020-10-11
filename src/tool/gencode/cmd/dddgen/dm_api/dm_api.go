@@ -149,7 +149,7 @@ func (g GoBeeDomainApiServeGen) GenProtocol(c api.Controller, options model.SvrO
 			ref := refPath
 			arrays := strings.Split(ref, "/")
 			modelName := arrays[len(arrays)-1]
-			fields := g.getProtocolField(c, p, options)
+			fields := g.getProtocolField(c, p, options, domainModel, ref)
 			for i, field := range fields {
 				if strings.HasPrefix(p.ServiceName, "List") {
 					continue
@@ -158,11 +158,11 @@ func (g GoBeeDomainApiServeGen) GenProtocol(c api.Controller, options model.SvrO
 					"Desc":   field.Desc,
 					"Column": field.Name,
 					"Type":   field.TypeValue,
-					"Tags":   fmt.Sprintf("`json:\"%v\"`", common.LowFirstCase(field.Name)),
+					"Tags":   fmt.Sprintf("`json:\"%v,omitempty\"`", common.LowFirstCase(field.Name)),
 				}); err != nil {
 					return err
 				}
-				if i != (len(domainModel.Fields) - 1) {
+				if i != (len(fields) - 1) {
 					bufFields.WriteString("\n")
 				}
 			}
@@ -284,19 +284,53 @@ func (g GoBeeDomainApiServeGen) getApplicationLogic(c api.Controller, path api.A
 	return buf.String()
 }
 
-func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiPath, options model.SvrOptions) []*model.Field {
+func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiPath, options model.SvrOptions, domainModel dm.DomainModel, ref string) []*model.Field {
 	rsp := make([]*model.Field, 0)
+	if strings.HasSuffix(ref, "Response") {
+		return rsp
+	}
+	newField := func(name, t, desc string) *model.Field {
+		return &model.Field{
+			Name:      name,
+			TypeValue: t,
+			Desc:      desc,
+		}
+	}
 	if strings.HasPrefix(path.ServiceName, "Create") {
-
+		for _, f := range domainModel.Fields {
+			if containAnyInArray(f.Name, "Id", domainModel.Name+"Id", "At", "Time") {
+				continue
+			}
+			rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
+		}
+		return rsp
 	}
 	if strings.HasPrefix(path.ServiceName, "Update") {
-
+		for _, f := range domainModel.Fields {
+			if containAnyInArray(f.Name, "At", "Time") {
+				continue
+			}
+			rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
+		}
+		return rsp
 	}
 	if strings.HasPrefix(path.ServiceName, "Get") {
-
+		for _, f := range domainModel.Fields {
+			if containAnyInArray(f.Name, "Id", domainModel.Name+"Id", "At", "Time") {
+				rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
+				continue
+			}
+		}
+		return rsp
 	}
 	if strings.HasPrefix(path.ServiceName, "Delete") {
-
+		for _, f := range domainModel.Fields {
+			if containAnyInArray(f.Name, "Id", domainModel.Name+"Id", "At", "Time") {
+				rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
+				continue
+			}
+		}
+		return rsp
 	}
 	if strings.HasPrefix(path.ServiceName, "List") {
 
