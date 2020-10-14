@@ -113,7 +113,7 @@ func (g GoBeeDomainApiServeGen) GenApplication(c api.Controller, options model.S
 		}
 	}
 
-	if err := common.ExecuteTmpl(buf, api.Application, map[string]interface{}{
+	if err := common.ExecuteTmpl(buf, application, map[string]interface{}{
 		"Package": common.LowCasePaddingUnderline(c.Controller),
 		"Module":  options.ModulePath,
 		"Service": c.Controller,
@@ -213,7 +213,7 @@ func (g GoBeeDomainApiServeGen) getApplicationLogic(c api.Controller, path api.A
 			if containAnyInArray(field.Name, "Id") {
 				continue
 			}
-			if containAnyInArray(field.Name, "At", "Time") {
+			if containAnyInArray(field.Name, "At", "Time") && field.TypeValue == "time.Time" {
 				buf.WriteString(fmt.Sprintf("		%v: time.Now(),\n", field.Name))
 				continue
 			}
@@ -251,7 +251,7 @@ func (g GoBeeDomainApiServeGen) getApplicationLogic(c api.Controller, path api.A
 	if {{.domain}},err={{.Domain}}Repository.FindOne(common.ObjectToMap(request));err!=nil{
 		return
 	}
-	rsp = userInfo`, map[string]interface{}{"Domain": c.Controller, "domain": common.LowFirstCase(c.Controller)})
+	rsp = {{.domain}}`, map[string]interface{}{"Domain": c.Controller, "domain": common.LowFirstCase(c.Controller)})
 		return buf.String()
 	}
 	if strings.HasPrefix(path.ServiceName, "Delete") {
@@ -307,7 +307,7 @@ func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiP
 	}
 	if strings.HasPrefix(path.ServiceName, "Update") {
 		for _, f := range domainModel.Fields {
-			if containAnyInArray(f.Name, "At", "Time") {
+			if containAnyInArray(f.Name, "Id", "At", "Time") {
 				continue
 			}
 			rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
@@ -316,7 +316,7 @@ func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiP
 	}
 	if strings.HasPrefix(path.ServiceName, "Get") {
 		for _, f := range domainModel.Fields {
-			if containAnyInArray(f.Name, "Id", domainModel.Name+"Id", "At", "Time") {
+			if equalAnyInArray(f.Name, "Id", domainModel.Name+"Id") {
 				rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
 				continue
 			}
@@ -325,7 +325,7 @@ func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiP
 	}
 	if strings.HasPrefix(path.ServiceName, "Delete") {
 		for _, f := range domainModel.Fields {
-			if containAnyInArray(f.Name, "Id", domainModel.Name+"Id", "At", "Time") {
+			if equalAnyInArray(f.Name, "Id", domainModel.Name+"Id") {
 				rsp = append(rsp, newField(f.Name, f.TypeValue, f.Desc))
 				continue
 			}
@@ -341,6 +341,15 @@ func (g GoBeeDomainApiServeGen) getProtocolField(c api.Controller, path api.ApiP
 func containAnyInArray(c string, array ...string) bool {
 	for i := range array {
 		if strings.Contains(c, array[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+func equalAnyInArray(c string, array ...string) bool {
+	for i := range array {
+		if strings.EqualFold(c, array[i]) {
 			return true
 		}
 	}

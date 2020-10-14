@@ -6,7 +6,7 @@ const tmplProtocolDomainModel = `package domain
 type {{.Model}} struct {
 {{.Items}}
 }
-
+{{if .IsDomainModel}}
 type {{.Model}}Repository interface {
 	Save(dm *{{.Model}}) (*{{.Model}}, error)
 	Remove(dm *{{.Model}}) (*{{.Model}}, error)
@@ -20,6 +20,11 @@ func (m *{{.Model}}) Identify() interface{} {
 	}
 	return m.Id
 }
+
+func (m *{{.Model}}) Update(data map[string]interface{}) error {
+	return nil
+}
+{{end}}
 `
 
 const tmplProtocolDomainPgRepository = `package repository

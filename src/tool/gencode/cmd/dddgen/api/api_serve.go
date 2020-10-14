@@ -115,6 +115,7 @@ func GenApiServer(serveGen ServeGen, o model.SvrOptions, controllers []Controlle
 				log.Println("【gen code】 jump:", filePath)
 				continue
 			}
+
 			err := common.SaveTo(result.Root, result.SaveTo, result.FileName, result.FileData)
 			if err != nil {
 				fmt.Println(err)
@@ -343,6 +344,7 @@ func (g GoBeeApiServeGen) GenApplication(c Controller, options model.SvrOptions,
 		if err := common.ExecuteTmpl(bufMethods, ApplicationMethod, map[string]interface{}{
 			"Method":  common.UpperFirstCase(pName),
 			"Service": c.Controller,
+			"Logic":   "",
 		}); err != nil {
 			return err
 		}

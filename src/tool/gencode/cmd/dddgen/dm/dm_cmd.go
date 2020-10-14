@@ -111,13 +111,14 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 		log.Fatal(err)
 	}
 	bufTmpl := bytes.NewBuffer(nil)
-	m := make(map[string]string)
+	m := make(map[string]interface{})
 	m["Model"] = dm.Name
 	m["Items"] = buf.String()
 	m["Desc"] = dm.Desc
 	if len(dm.Desc) == 0 {
 		m["Desc"] = dm.Name
 	}
+	m["IsDomainModel"] = dm.ValueType == string(constant.DomainModel)
 	tP.Execute(bufTmpl, m)
 	fileName := dm.Name
 	if dm.ValueType == string(constant.DomainModel) {
