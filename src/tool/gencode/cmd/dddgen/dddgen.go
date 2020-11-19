@@ -3,6 +3,8 @@ package dddgen
 import (
 	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd/dddgen/api"
 	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd/dddgen/dm"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd/dddgen/dm_api"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/cmd/dddgen/pkg_control"
 	"github.com/urfave/cli"
 )
 
@@ -91,6 +93,65 @@ func Commands() []cli.Command {
 				},
 			},
 			Action: api.RunApiSever,
+		},
+		{
+			Name:  "dm-api",
+			Usage: "Create domain-model; example: gencode dm-api -p Path -st SaveTo -lib beego -lang Language(go)",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "p",
+					Usage: "domain-model dsl file path(描述语言路径)   .",
+					Value: "F://go//src//learn_project//ddd-project//stock",
+				},
+				cli.StringFlag{
+					Name:  "st",
+					Usage: "gen code save to file path(生成文件路径)",
+					Value: "./gen",
+				},
+				cli.StringFlag{
+					Name:  "dp",
+					Usage: "data persistence(数据持久化 pg mysql redis)",
+					Value: "pg",
+				},
+				cli.StringFlag{
+					Name:  "lang",
+					Usage: "gen target language code(生成指定语言代码)",
+					Value: "go",
+				},
+			},
+			Action: dm_api.DmApiRun,
+		},
+		{
+			Name:  "pkg",
+			Usage: "Import Package; example: gencode pkg -t add -st SaveTo -lib redis -lang Language(go)",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "add",
+					Usage: "domain-model dsl file path(描述语言路径)   .",
+					Value: "F://go//src//learn_project//ddd-project//stock",
+				},
+				cli.StringFlag{
+					Name:  "st",
+					Usage: "gen code save to file path(生成文件路径)",
+					Value: "./gen",
+				},
+				cli.StringFlag{
+					Name:  "lib",
+					Usage: "引用的库名称(redis)",
+					Value: "redis",
+				},
+				cli.StringFlag{
+					Name:  "t",
+					Usage: "包操作 添加/删除",
+					Value: "add",
+				},
+				cli.StringFlag{
+					Name:  "lang",
+					Usage: "gen target language code(生成指定语言代码)",
+					Value: "go",
+				},
+			},
+			Action: pkg_control.RunPackageControl,
 		},
 	}
 }

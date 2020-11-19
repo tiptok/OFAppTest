@@ -2,10 +2,11 @@ package dm
 
 const tmplProtocolDomainModel = `package domain
 
+// {{.Desc}}
 type {{.Model}} struct {
 {{.Items}}
 }
-
+{{if .IsDomainModel}}
 type {{.Model}}Repository interface {
 	Save(dm *{{.Model}}) (*{{.Model}}, error)
 	Remove(dm *{{.Model}}) (*{{.Model}}, error)
@@ -19,6 +20,15 @@ func (m *{{.Model}}) Identify() interface{} {
 	}
 	return m.Id
 }
+
+func (m *{{.Model}}) Update(data map[string]interface{}) error {
+{{range .Fields}}	if v, ok := data["{{.Column}}"]; ok {
+		m.{{.Name}} = v.({{.Type}})
+	}
+{{end}}
+	return nil
+}
+{{end}}
 `
 
 const tmplProtocolDomainPgRepository = `package repository
@@ -26,13 +36,24 @@ const tmplProtocolDomainPgRepository = `package repository
 import (
 	"fmt"
 	"{{.Module}}/pkg/domain"
+	"{{.Module}}/pkg/constant"
 	"{{.Module}}/pkg/infrastructure/pg/models"
 	"{{.Module}}/pkg/infrastructure/pg/transaction"
 	. "github.com/tiptok/gocomm/pkg/orm/pgx"
 	"github.com/tiptok/gocomm/common"
+	"github.com/tiptok/gocomm/pkg/cache"
+)
+
+var (
+	cache{{.Model}}IdKey = func(id int64)string{
+		return fmt.Sprintf("%v:cache:{{.Model}}:id:%v",{{.DBName}},id)
+ 		// 不需要执行缓存时,key设置为空
+		// return ""
+	}
 )
 
 type {{.Model}}Repository struct {
+	*cache.CachedRepository
 	transactionContext *transaction.TransactionContext
 }
 
@@ -46,61 +67,80 @@ func (repository *{{.Model}}Repository) Save(dm *domain.{{.Model}}) (*domain.{{.
 		return nil, err
 	}
 	if dm.Identify() == nil {
-		if err = tx.Insert(m); err != nil {
+		if _,err = tx.Model(m).Insert(); err != nil {
 			return nil, err
 		}
+		dm.Id = m.Id
 		return dm, nil
 	}
-	if err = tx.Update(m); err != nil {
+	queryFunc:=func()(interface{},error){
+		return tx.Model(m).WherePK().Update()
+	}
+	if _, err = repository.Query(queryFunc,cache{{.Model}}IdKey(dm.Id)); err != nil {
 		return nil, err
 	}
 	return dm, nil
 }
 
-func (repository *{{.Model}}Repository) Remove({{.Model}} *domain.{{.Model}}) (*domain.{{.Model}}, error) {
+func (repository *{{.Model}}Repository) Remove(dm *domain.{{.Model}}) (*domain.{{.Model}}, error) {
 	var (
 		tx          = repository.transactionContext.PgTx
-		{{.Model}}Model = &models.{{.Model}}{Id: {{.Model}}.Identify().(int64)}
+		m = &models.{{.Model}}{Id: dm.Identify().(int64)}
 	)
-	if _, err := tx.Model({{.Model}}Model).Where("id = ?", {{.Model}}.Id).Delete(); err != nil {
-		return {{.Model}}, err
+	queryFunc:=func()(interface{},error){
+		return tx.Model(m).Where("id = ?", dm.Id).Delete()
 	}
-	return {{.Model}}, nil
+	if _,err:=repository.Query(queryFunc,cache{{.Model}}IdKey(dm.Id));err!=nil{
+		return dm, err
+	}
+	return dm, nil
 }
 
 func (repository *{{.Model}}Repository) FindOne(queryOptions map[string]interface{}) (*domain.{{.Model}}, error) {
-	tx := repository.transactionContext.PgTx
-	{{.Model}}Model := new(models.{{.Model}})
-	query := NewQuery(tx.Model({{.Model}}Model), queryOptions)
-	query.SetWhere("id = ?", "id")
-	if err := query.First(); err != nil {
+	tx := repository.transactionContext.PgDd
+	m := new(models.{{.Model}})
+    queryFunc:=func()(interface{},error){
+		query := NewQuery(tx.Model(m), queryOptions)
+		query.SetWhere("id = ?", "id")
+		if err := query.First(); err != nil {
+			return nil, fmt.Errorf("query row not found")
+		}
+		return m,nil
+	}
+	var options []cache.QueryOption
+	if _,ok:=queryOptions["id"];!ok{
+		options = append(options,cache.WithNoCacheFlag())
+	}else {
+		m.Id = queryOptions["id"].(int64)
+	}
+	if err:=repository.QueryCache(cache{{.Model}}IdKey(m.Id),m,queryFunc,options...);err!=nil{
+		return nil, err
+	}
+	if m.Id == 0 {
 		return nil, fmt.Errorf("query row not found")
 	}
-	if {{.Model}}Model.Id == 0 {
-		return nil, fmt.Errorf("query row not found")
-	}
-	return repository.transformPgModelToDomainModel({{.Model}}Model)
+	return repository.transformPgModelToDomainModel(m)
 }
 
 func (repository *{{.Model}}Repository) Find(queryOptions map[string]interface{}) (int64, []*domain.{{.Model}}, error) {
 	tx := repository.transactionContext.PgTx
-	var {{.Model}}Models []*models.{{.Model}}
-	{{.Model}}s := make([]*domain.{{.Model}}, 0)
-	query := NewQuery(tx.Model(&{{.Model}}Models), queryOptions).
+	var mList []*models.{{.Model}}
+	dmList := make([]*domain.{{.Model}}, 0)
+	query := NewQuery(tx.Model(&mList), queryOptions).
 		SetOrder("create_time", "sortByCreateTime").
 		SetOrder("update_time", "sortByUpdateTime")
 	var err error
 	if query.AffectRow, err = query.SelectAndCount(); err != nil {
-		return 0, {{.Model}}s, err
+		return 0, dmList, err
 	}
-	for _, {{.Model}}Model := range {{.Model}}Models {
-		if {{.Model}}, err := repository.transformPgModelToDomainModel({{.Model}}Model); err != nil {
-			return 0, {{.Model}}s, err
+	for _, m := range mList {
+		if {{.Model}}, err := repository.transformPgModelToDomainModel(m); err != nil {
+			return 0, dmList, err
 		} else {
-			{{.Model}}s = append({{.Model}}s, {{.Model}})
+			dmList = append(dmList, {{.Model}})
 		}
 	}
-	return int64(query.AffectRow), {{.Model}}s, nil
+	return int64(query.AffectRow), dmList, nil
 }
 
 func (repository *{{.Model}}Repository) transformPgModelToDomainModel({{.Model}}Model *models.{{.Model}}) (*domain.{{.Model}}, error) {
@@ -113,12 +153,13 @@ func New{{.Model}}Repository(transactionContext *transaction.TransactionContext)
 	if transactionContext == nil {
 		return nil,fmt.Errorf("transactionContext参数不能为nil")
 	}
-	return &{{.Model}}Repository{transactionContext: transactionContext}, nil
+	return &{{.Model}}Repository{transactionContext: transactionContext, CachedRepository: cache.NewDefaultCachedRepository()}, nil
 }
 `
 
 const tmplProtocolPgModel = `package models
 
+// {{.Desc}}
 type {{.Model}} struct {
 {{.Items}}
 }
@@ -189,7 +230,7 @@ func init() {
 		for _, model := range []interface{}{
 {{.models}}
 		} {
-			err := DB.CreateTable(model, &orm.CreateTableOptions{
+			err := DB.Model(model).CreateTable(&orm.CreateTableOptions{
 				Temp:          false,
 				IfNotExists:   true,
 				FKConstraints: true,

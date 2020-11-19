@@ -39,26 +39,31 @@ type {{.Controller}}Controller struct {
 // Application    auth
 const beegoControllerMethod = `// {{.Method}} 
 // {{.Desc}}
-func (this *{{.ControllerName}}Controller) {{.Method}}() {
-	var msg *protocol.ResponseMessage
+func (controller *{{.ControllerName}}Controller) {{.Method}}() {
+	var (
+		msg *protocol.ResponseMessage
+		svr ={{.Application}}.New{{.ControllerName}}Service(nil)
+		request =&protocolx.{{.RequestModel}}{}
+	)
 	defer func() {
-		this.Resp(msg)
+		controller.Resp(msg)
 	}()
-	var request *protocolx.{{.RequestModel}}
-	if err := this.JsonUnmarshal(&request); err != nil {
-		msg = protocol.BadRequestParam(1)
+	{{if eq .HttpMethod "POST" "PUT"}}
+    if err := controller.JsonUnmarshal(request); err != nil {
+		msg = protocol.NewResponseMessage(2,err.Error())
 		return
-	}
-	if b, m := this.Valid(request); !b {
-		msg = m
-		return
-	}
-	header := this.GetRequestHeader(this.Ctx)
-	data, err := {{.Application}}.{{.Method}}(header, request)
+	}{{end}}
+    {{if eq .HttpMethod  "DELETE" "PUT"}}
+    request.Id, _ = controller.GetInt64(":{{.LowerControllerName}}Id")
+	{{else if eq .HttpMethod  "GET"}}
+    //request.Id, _ = controller.GetInt64(":{{.LowerControllerName}}Id")
+	{{end}}
+	header := controller.GetRequestHeader(controller.Ctx)
+	data, err := svr.{{.Method}}(header, request)
 	if err != nil {
 		log.Error(err)
 	}
-	msg = protocol.NewReturnResponse(data, err)
+	msg = protocol.NewResponseMessageData(data, err)
 }
 `
 
@@ -96,7 +101,7 @@ func init(){
 	}))
 }`
 
-const application = `package {{.Package}}
+const Application = `package {{.Package}}
 
 import (
 	"github.com/tiptok/gocomm/pkg/log"
@@ -105,16 +110,30 @@ import (
 	protocolx "{{.Module}}/pkg/protocol/{{.Package}}"
 )
 
+type {{.Service}}Service struct {
+	
+}
+
 {{.Methods}}
+
+
+func New{{.Service}}Service(options map[string]interface{}) *{{.Service}}Service {
+	svr := &{{.Service}}Service{}
+	return svr
+}
 `
 
 //Method Login
 //
-const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, request *protocolx.{{.Method}}Request) (rsp *protocolx.{{.Method}}Response, err error) {
+const ApplicationMethod = `func(svr *{{.Service}}Service){{.Method}}(header *protocol.RequestHeader, request *protocolx.{{.Method}}Request) (rsp *protocolx.{{.Method}}Response, err error) {
 	var (
 		transactionContext, _          = factory.CreateTransactionContext(nil)
 	)
 	rsp = &protocolx.{{.Method}}Response{}
+	if err=request.ValidateCommand();err!=nil{
+		err = protocol.NewCustomMessage(2,err.Error())
+		return
+	}
 	if err = transactionContext.StartTransaction(); err != nil {
 		log.Error(err)
 		return nil, err
@@ -122,21 +141,41 @@ const applicationMethod = `func {{.Method}}(header *protocol.RequestHeader, requ
 	defer func() {
 		transactionContext.RollbackTransaction()
 	}()
+
+{{.Logic}}
 	
 	err = transactionContext.CommitTransaction()
 	return
 }`
 
-const protocolModel = `package {{.Package}}
+const ProtocolModel = `package {{.Package}}
+
+import (
+	"fmt"
+	"github.com/astaxie/beego/validation"
+)
 
 type {{.Model}} struct {
 {{.Fields}}
 }
+
+func ({{.Model}} *{{.Model}}) ValidateCommand() error {
+	valid := validation.Validation{}
+	b, err := valid.Valid({{.Model}})
+	if err != nil {
+		return err
+	}
+	if !b {
+		for _, validErr := range valid.Errors {
+			return fmt.Errorf("%s  %s", validErr.Key, validErr.Message)
+		}
+	}
+	return nil
+}
 `
 
-const protocolField = `	// {{.Desc}}
-	{{.Column}} {{.Type}} {{.Tags}}
-`
+const ProtocolField = `	// {{.Desc}}
+	{{.Column}} {{.Type}} {{.Tags}}`
 
 const beegoBaseController = `package controllers
 
@@ -147,6 +186,7 @@ import (
 	"github.com/astaxie/beego/validation"
 	"{{.Module}}/pkg/protocol"
 	"strconv"
+    "github.com/tiptok/gocomm/common" 
 )
 
 type BaseController struct {
@@ -183,25 +223,39 @@ func (controller *BaseController) Valid(obj interface{}) (result bool, msg *prot
 	return
 }
 
-func (this *BaseController)  Resp(msg *protocol.ResponseMessage) {
-	this.Data["json"] = msg
-	this.Ctx.Input.SetData("outputData", msg)
-	this.ServeJSON()
+func (controller BaseController) BodyKeys(firstCaseToUpper bool) []string {
+	var bodyKV map[string]json.RawMessage
+	controller.JsonUnmarshal(&bodyKV)
+	if len(bodyKV)==0{
+		return []string{}
+	}
+	var list []string
+	for k,_ :=range bodyKV{
+		list = append(list,common.CamelCase(k,true))
+	}
+	return list
 }
 
-func (this *BaseController) RespH5(msg *protocol.ResponseMessage) {
+func (controller *BaseController)  Resp(msg *protocol.ResponseMessage) {
+	controller.Data["json"] = msg
+	controller.Ctx.Input.SetData("outputData", msg)
+	controller.ServeJSON()
+}
+
+func (controller *BaseController) RespH5(msg *protocol.ResponseMessage) {
 	if msg.Errno != 0 {
 		msg.Errno = -1
 	}
-	this.Data["json"] = msg
-	this.Ctx.Input.SetData("outputData", msg)
-	this.ServeJSON()
+	controller.Data["json"] = msg
+	controller.Ctx.Input.SetData("outputData", msg)
+	controller.ServeJSON()
 }
 
 //获取请求头信息
-func (this *BaseController) GetRequestHeader(ctx *context.Context) *protocol.RequestHeader {
+func (controller *BaseController) GetRequestHeader(ctx *context.Context) *protocol.RequestHeader {
 	h := &protocol.RequestHeader{}
 	h.UserId, _ = strconv.ParseInt(ctx.Input.Header("x-mmm-id"), 10, 64)
+    h.BodyKeys = controller.BodyKeys(true)
 	return h
 }
 

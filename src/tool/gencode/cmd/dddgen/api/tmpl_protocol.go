@@ -73,15 +73,15 @@ func (e ErrWithMessage) ParseToMessage() *ResponseMessage {
 func SearchErr(code int) ErrorCode {
 	return errmessge.Search(code)
 }
-func NewReturnResponse(data interface{}, eRR error) *ResponseMessage {
+func NewResponseMessageData(data interface{}, err error) *ResponseMessage {
 	var msg *ResponseMessage
-	if eRR == nil {
+	if err == nil {
 		msg = NewMesage(0)
 		msg.Data = data
 		return msg
 	}
-	//log.Error("服务错误:" + eRR.Error())
-	if x, ok := eRR.(CustomErrParse); ok {
+	//log.Error("服务错误:" + err.Error())
+	if x, ok := err.(CustomErrParse); ok {
 		msg = x.ParseToMessage()
 		msg.Data = data
 		return msg
@@ -146,6 +146,7 @@ var errmessge ErrorMap = map[int]string{
 
 type RequestHeader struct {
 	UserId      int64 //UserId 唯一标识
+    BodyKeys []string //键值
 }
 
 `

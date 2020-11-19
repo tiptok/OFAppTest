@@ -18,7 +18,7 @@ import (
 // 通过api dsl描述语言 生成对应的api服务
 func RunApiSever(ctx *cli.Context) {
 	var (
-		o        = apiSvrOptions{}
+		o        = ApiSvrOptions{}
 		results  = make(chan *GenResult, 100)
 		serveGen = serveGenFactory()
 	)
@@ -36,6 +36,10 @@ func RunApiSever(ctx *cli.Context) {
 		fmt.Println("read api models err:", err)
 		return
 	}
+	GenApiServer(serveGen, o.SvrOptions, controllers, results)
+}
+
+func GenApiServer(serveGen ServeGen, o model.SvrOptions, controllers []Controller, results chan *GenResult) {
 	genFactoryTransaction(o, results)
 	genDefaultByLib(o, results)
 	go func() {
@@ -65,10 +69,11 @@ func RunApiSever(ctx *cli.Context) {
 	go func() {
 		for result := range results {
 			filePath := filepath.Join(result.Root, result.SaveTo, result.FileName)
-			if common.FileExists(filePath) && result.NotCover {
+			if common.FileExists(filePath) && result.CoverExists {
 				log.Println("【gen code】 jump:", filePath)
 				continue
 			}
+
 			err := common.SaveTo(result.Root, result.SaveTo, result.FileName, result.FileData)
 			if err != nil {
 				fmt.Println(err)
@@ -79,7 +84,8 @@ func RunApiSever(ctx *cli.Context) {
 	}()
 	done.Wait()
 }
-func genDefaultByLib(options apiSvrOptions, result chan<- *GenResult) {
+
+func genDefaultByLib(options model.SvrOptions, result chan<- *GenResult) {
 	switch options.Lib {
 	case "beego":
 		if err := genBeegoRouterInit(options, result); err != nil {
@@ -91,12 +97,12 @@ func genDefaultByLib(options apiSvrOptions, result chan<- *GenResult) {
 		break
 	}
 }
-func genDefaultByPersistence(options apiSvrOptions, result chan<- *GenResult) {
+func genDefaultByPersistence(options model.SvrOptions, result chan<- *GenResult) {
 
 }
 
 // gen /application/transaction  by persistence
-func genFactoryTransaction(options apiSvrOptions, result chan<- *GenResult) (err error) {
+func genFactoryTransaction(options model.SvrOptions, result chan<- *GenResult) (err error) {
 	buf := bytes.NewBuffer(nil)
 
 	if err := common.ExecuteTmpl(buf, pgFactoryTransaction, map[string]interface{}{
@@ -106,16 +112,17 @@ func genFactoryTransaction(options apiSvrOptions, result chan<- *GenResult) (err
 		return err
 	}
 	result <- &GenResult{
-		Root:     options.SaveTo,
-		SaveTo:   constant.WithApplication("factory"),
-		FileName: common.LowCasePaddingUnderline("transaction") + ".go",
-		FileData: buf.Bytes(),
+		Root:        options.SaveTo,
+		SaveTo:      constant.WithApplication("factory"),
+		FileName:    common.LowCasePaddingUnderline("transaction") + ".go",
+		FileData:    buf.Bytes(),
+		CoverExists: true,
 	}
 	return nil
 }
 
 // gen /pkg/port/beego/router  by lib
-func genBeegoRouterInit(options apiSvrOptions, result chan<- *GenResult) (err error) {
+func genBeegoRouterInit(options model.SvrOptions, result chan<- *GenResult) (err error) {
 	buf := bytes.NewBuffer(nil)
 
 	if err := common.ExecuteTmpl(buf, beegoRouterInit, map[string]interface{}{
@@ -133,7 +140,7 @@ func genBeegoRouterInit(options apiSvrOptions, result chan<- *GenResult) (err er
 }
 
 // gen main.go by lib
-func genBeegoMain(options apiSvrOptions, result chan<- *GenResult) (err error) {
+func genBeegoMain(options model.SvrOptions, result chan<- *GenResult) (err error) {
 	buf := bytes.NewBuffer(nil)
 
 	if err := common.ExecuteTmpl(buf, beegoMain, map[string]interface{}{
@@ -191,16 +198,16 @@ func serveGenFactory() ServeGen {
 }
 
 type ServeGen interface {
-	GenController(c Controller, options apiSvrOptions, result chan<- *GenResult) error
-	GenRouter(c Controller, options apiSvrOptions, result chan<- *GenResult) error
-	GenApplication(c Controller, options apiSvrOptions, result chan<- *GenResult) error
-	GenProtocol(c Controller, options apiSvrOptions, result chan<- *GenResult) error
+	GenController(c Controller, options model.SvrOptions, result chan<- *GenResult) error
+	GenRouter(c Controller, options model.SvrOptions, result chan<- *GenResult) error
+	GenApplication(c Controller, options model.SvrOptions, result chan<- *GenResult) error
+	GenProtocol(c Controller, options model.SvrOptions, result chan<- *GenResult) error
 }
 
 // golang beego 框架 serve生成器
 type GoBeeApiServeGen struct{}
 
-func (g GoBeeApiServeGen) GenController(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
+func (g GoBeeApiServeGen) GenController(c Controller, options model.SvrOptions, result chan<- *GenResult) error {
 	buf := bytes.NewBuffer(nil)
 	if err := common.ExecuteTmpl(buf, beegonController, map[string]interface{}{
 		"Module":          options.ModulePath,
@@ -216,12 +223,14 @@ func (g GoBeeApiServeGen) GenController(c Controller, options apiSvrOptions, res
 		pName, req, rsp := p.ParsePath()
 		//log.Println(pName,req,rsp)
 		if err := common.ExecuteTmpl(buf, beegoControllerMethod, map[string]interface{}{
-			"Method":         common.UpperFirstCase(pName),
-			"Desc":           p.Summary,
-			"ControllerName": c.Controller,
-			"RequestModel":   req,
-			"ResponseModel":  rsp,
-			"Application":    common.LowCasePaddingUnderline(c.Controller),
+			"Method":              common.UpperFirstCase(pName),
+			"Desc":                p.Summary,
+			"ControllerName":      c.Controller,
+			"RequestModel":        req,
+			"ResponseModel":       rsp,
+			"Application":         common.LowCasePaddingUnderline(c.Controller),
+			"HttpMethod":          strings.ToUpper(p.Method),
+			"LowerControllerName": common.LowFirstCase(c.Controller),
 		}); err != nil {
 			return err
 		}
@@ -241,15 +250,15 @@ func (g GoBeeApiServeGen) GenController(c Controller, options apiSvrOptions, res
 		return err
 	}
 	result <- &GenResult{
-		Root:     options.SaveTo,
-		SaveTo:   constant.WithController(options.Lib),
-		FileName: "base.go",
-		FileData: baseBuf.Bytes(),
-		NotCover: true,
+		Root:        options.SaveTo,
+		SaveTo:      constant.WithController(options.Lib),
+		FileName:    "base.go",
+		FileData:    baseBuf.Bytes(),
+		CoverExists: true,
 	}
 	return nil
 }
-func (g GoBeeApiServeGen) GenRouter(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
+func (g GoBeeApiServeGen) GenRouter(c Controller, options model.SvrOptions, result chan<- *GenResult) error {
 	buf := bytes.NewBuffer(nil)
 	bufRouters := bytes.NewBuffer(nil)
 	for i := 0; i < len(c.Paths); i++ {
@@ -284,7 +293,7 @@ func (g GoBeeApiServeGen) GenRouter(c Controller, options apiSvrOptions, result 
 	}
 	return nil
 }
-func (g GoBeeApiServeGen) GenApplication(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
+func (g GoBeeApiServeGen) GenApplication(c Controller, options model.SvrOptions, result chan<- *GenResult) error {
 	buf := bytes.NewBuffer(nil)
 	bufMethods := bytes.NewBuffer(nil)
 	for i := 0; i < len(c.Paths); i++ {
@@ -292,16 +301,19 @@ func (g GoBeeApiServeGen) GenApplication(c Controller, options apiSvrOptions, re
 		p := c.Paths[i]
 		pName, _, _ := p.ParsePath()
 		//log.Println(pName,req,rsp)
-		if err := common.ExecuteTmpl(bufMethods, applicationMethod, map[string]interface{}{
-			"Method": common.UpperFirstCase(pName),
+		if err := common.ExecuteTmpl(bufMethods, ApplicationMethod, map[string]interface{}{
+			"Method":  common.UpperFirstCase(pName),
+			"Service": c.Controller,
+			"Logic":   "",
 		}); err != nil {
 			return err
 		}
 	}
 
-	if err := common.ExecuteTmpl(buf, application, map[string]interface{}{
+	if err := common.ExecuteTmpl(buf, Application, map[string]interface{}{
 		"Package": common.LowCasePaddingUnderline(c.Controller),
 		"Module":  options.ModulePath,
+		"Service": c.Controller,
 		"Methods": bufMethods.String(),
 	}); err != nil {
 		return err
@@ -315,7 +327,7 @@ func (g GoBeeApiServeGen) GenApplication(c Controller, options apiSvrOptions, re
 	}
 	return nil
 }
-func (g GoBeeApiServeGen) GenProtocol(c Controller, options apiSvrOptions, result chan<- *GenResult) error {
+func (g GoBeeApiServeGen) GenProtocol(c Controller, options model.SvrOptions, result chan<- *GenResult) error {
 
 	for i := 0; i < len(c.Paths); i++ {
 
@@ -338,7 +350,7 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options apiSvrOptions, resul
 			//fmt.Println(filepath.Join(options.ProjectPath,ref),m.Name,len(m.Fields))
 			for i := range m.Fields {
 				field := m.Fields[i]
-				if err := common.ExecuteTmpl(bufFields, protocolField, map[string]interface{}{
+				if err := common.ExecuteTmpl(bufFields, ProtocolField, map[string]interface{}{
 					"Desc":   field.Desc,
 					"Column": field.Name,
 					"Type":   field.TypeValue,
@@ -351,18 +363,21 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options apiSvrOptions, resul
 				}
 			}
 
-			if err := common.ExecuteTmpl(buf, protocolModel, map[string]interface{}{
+			if err := common.ExecuteTmpl(buf, ProtocolModel, map[string]interface{}{
 				"Package": common.LowCasePaddingUnderline(c.Controller),
 				"Model":   modelName,
 				"Fields":  bufFields.String(),
 			}); err != nil {
 				return err
 			}
-
+			fileName := common.LowCasePaddingUnderline(modelName) + ".go"
+			if len(p.Operator) > 0 {
+				fileName = p.Operator + "_" + fileName
+			}
 			result <- &GenResult{
 				Root:     options.SaveTo,
 				SaveTo:   constant.WithProtocol(common.LowCasePaddingUnderline(c.Controller)),
-				FileName: common.LowCasePaddingUnderline(modelName) + ".go",
+				FileName: fileName,
 				FileData: buf.Bytes(),
 			}
 			return nil
@@ -379,42 +394,55 @@ func (g GoBeeApiServeGen) GenProtocol(c Controller, options apiSvrOptions, resul
 	}
 
 	result <- &GenResult{
-		Root:     options.SaveTo,
-		SaveTo:   constant.ProtocolX,
-		FileName: "protocol.go",
-		FileData: []byte(protocolx),
-		NotCover: true,
+		Root:        options.SaveTo,
+		SaveTo:      constant.ProtocolX,
+		FileName:    "protocol.go",
+		FileData:    []byte(protocolx),
+		CoverExists: true,
 	}
 	return nil
 }
 
+func FileGen(results chan *GenResult) {
+	var done sync.WaitGroup
+	done.Add(1)
+	go func() {
+		for result := range results {
+			filePath := filepath.Join(result.Root, result.SaveTo, result.FileName)
+			if common.FileExists(filePath) && result.CoverExists {
+				log.Println("【gen code】 jump:", filePath)
+				continue
+			}
+
+			err := common.SaveTo(result.Root, result.SaveTo, result.FileName, result.FileData)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+		done.Done()
+	}()
+	done.Wait()
+}
+
 type GenResult struct {
-	Root     string
-	SaveTo   string
-	FileName string
-	FileData []byte
-	NotCover bool //true=覆盖 false=不覆盖
+	Root        string
+	SaveTo      string
+	FileName    string
+	FileData    []byte
+	CoverExists bool //true=覆盖 false=不覆盖
 }
 type Operation struct {
-	Url      path
+	Url      ApiPath
 	Request  model.CustomerModel
 	Response model.CustomerModel
 }
 
 // 服务参数
-type apiSvrOptions struct {
-	// mod 路径
-	ModulePath string
-	// 项目路径
-	ProjectPath string
-	// 保存路径
-	SaveTo string
-	// 服务语言
-	Language string
-	// 框架
-	Lib string
+type ApiSvrOptions struct {
+	model.SvrOptions
 }
 
-func (o apiSvrOptions) Valid() (error, bool) {
+func (o ApiSvrOptions) Valid() (error, bool) {
 	return nil, true
 }

@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tiptok/OFAppTest/src/tool/gencode/common"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/constant"
+	"github.com/tiptok/OFAppTest/src/tool/gencode/model"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -23,8 +26,11 @@ func DmRun(ctx *cli.Context) {
 	o.DataPersistence = ctx.String("dp")
 	o.Language = ctx.String("lang")
 	o.ModulePath = common.GoModuleName(o.SaveTo)
-
-	dms := ReadDomainModels(filepath.Join(path, "domain-model"))
+	readPath := path
+	if !strings.Contains(readPath, "domain-model") {
+		readPath = filepath.Join(path, "domain-model")
+	}
+	dms := ReadDomainModels(readPath)
 	if len(dms) == 0 {
 		return
 	}
@@ -34,6 +40,11 @@ func DmRun(ctx *cli.Context) {
 		if err := dmGen.GenDomainModel(dms[i], o); err != nil {
 			log.Println(dms[i].Name, err)
 			return
+		}
+		// 值对象不需要生成持久模型/仓库模型
+		if dms[i].ValueType != string(constant.DomainModel) {
+			log.Println("jump", dms[i].ValueType, constant.DomainModel)
+			continue
 		}
 		if err := dmGen.GenPersistence(dms[i], o); err != nil {
 			log.Println(dms[i].Name, err)
@@ -49,6 +60,7 @@ func DmRun(ctx *cli.Context) {
 // 从描述文件里面读取模型
 func ReadDomainModels(path string) (dms []DomainModel) {
 	wkFunc := func(path string, info os.FileInfo, err error) error {
+		//log.Println(path)
 		if info.IsDir() {
 			return nil
 		}
@@ -75,11 +87,7 @@ func DomainModelGenFactory() DomainModelGen {
 }
 
 type DMOptions struct {
-	ProjectPath     string
-	SaveTo          string
-	DataPersistence string
-	Language        string
-	ModulePath      string
+	model.SvrOptions
 }
 type DomainModelGen interface {
 	GenDomainModel(dm DomainModel, o DMOptions) error
@@ -107,12 +115,24 @@ func (g *GoPgDomainModelGen) GenDomainModel(dm DomainModel, o DMOptions) error {
 		log.Fatal(err)
 	}
 	bufTmpl := bytes.NewBuffer(nil)
-	m := make(map[string]string)
+	m := make(map[string]interface{})
 	m["Model"] = dm.Name
 	m["Items"] = buf.String()
+	m["Desc"] = dm.Desc
+	m["Fields"] = dm.ColumnsNeedUpdate()
+	if len(dm.Desc) == 0 {
+		m["Desc"] = dm.Name
+	}
+	m["IsDomainModel"] = dm.ValueType == string(constant.DomainModel)
 	tP.Execute(bufTmpl, m)
-
-	saveTo(o, filePath, filename(dm.Name, "go"), bufTmpl.Bytes())
+	fileName := dm.Name
+	if dm.ValueType == string(constant.DomainModel) {
+		fileName = "Do" + dm.Name
+	}
+	if dm.ValueType == string(constant.DomainValue) {
+		fileName = "Dv" + dm.Name
+	}
+	saveTo(o, filePath, filename(fileName, "go"), bufTmpl.Bytes())
 	return nil
 }
 func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
@@ -126,6 +146,7 @@ func (g *GoPgDomainModelGen) GenRepository(dm DomainModel, o DMOptions) error {
 	bufTmpl := bytes.NewBuffer(nil)
 	m := make(map[string]string)
 	m["Model"] = dm.Name
+	m["DBName"] = "constant.POSTGRESQL_DB_NAME"
 	m["Module"] = common.GoModuleName(o.SaveTo)
 	tP.Execute(bufTmpl, m)
 
@@ -152,6 +173,10 @@ func (g *GoPgDomainModelGen) GenPersistence(dm DomainModel, o DMOptions) error {
 	m := make(map[string]string)
 	m["Model"] = dm.Name
 	m["Items"] = buf.String()
+	m["Desc"] = dm.Desc
+	if len(dm.Desc) == 0 {
+		m["Desc"] = dm.Name
+	}
 	tP.Execute(bufTmpl, m)
 
 	return saveTo(o, filePath, filename("Pg"+dm.Name, "go"), bufTmpl.Bytes())
@@ -237,9 +262,40 @@ func filename(filename, suffix string) string {
 //领域模型
 type DomainModel struct {
 	Name      string   `json:"name"`
-	ValueType string   `json:"type"`
+	ValueType string   `json:"value_type"` // domain-model 领域模型  domain-value值对象 property
+	Property  []string `json:"property"`   // restful
+	Desc      string   `json:"desc"`
 	Fields    []*field `json:"fields"`
 }
+
+func (dm DomainModel) NeedRestful() bool {
+	for _, v := range dm.Property {
+		if strings.TrimSpace(v) == "restful" {
+			return true
+		}
+	}
+	return false
+}
+
+func (dm DomainModel) ColumnsNeedUpdate() interface{} {
+	var fields []struct {
+		Name   string
+		Column string
+		Type   string
+	}
+	for _, v := range dm.Fields {
+		if v.Name == "Id" {
+			continue
+		}
+		fields = append(fields, struct {
+			Name   string
+			Column string
+			Type   string
+		}{Name: v.Name, Column: common.LowFirstCase(v.Name), Type: v.TypeValue})
+	}
+	return fields
+}
+
 type field struct {
 	Name      string `json:"name"`
 	TypeValue string `json:"type"`

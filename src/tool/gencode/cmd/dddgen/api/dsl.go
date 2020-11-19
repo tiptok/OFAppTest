@@ -53,13 +53,13 @@ func RunApiDSL(ctx *cli.Context) {
 	protcolName := splits[len(splits)-1]
 	RequestProtocol := common.UpperFirstCase(protcolName) + "Request"
 	ResponseProtocol := common.UpperFirstCase(protcolName) + "Response"
-	path := path{
+	path := ApiPath{
 		Path:     o.Path,
 		Method:   o.Method,
 		Summary:  "测试",
 		Content:  "json",
-		Request:  refObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowFirstCase(controller.Controller), RequestProtocol}, "/")},
-		Response: refObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowFirstCase(controller.Controller), ResponseProtocol}, "/")},
+		Request:  RefObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowCasePaddingUnderline(controller.Controller), RequestProtocol}, "/")},
+		Response: RefObject{RefPath: strings.Join([]string{constant.ApiProtocol, common.LowCasePaddingUnderline(controller.Controller), ResponseProtocol}, "/")},
 	}
 	fmt.Println(filepath.Join(constant.ApiProtocol, controller.Controller, RequestProtocol), constant.ApiProtocol, controller.Controller, RequestProtocol)
 	fmt.Println(path.Request.RefPath)
@@ -124,26 +124,31 @@ func (o dslOptions) Valid() error {
 }
 
 type Controller struct {
-	Controller string `json:"controller"`
-	Paths      []path `json:"paths"`
+	Controller string    `json:"controller"`
+	Paths      []ApiPath `json:"paths"`
 }
-type path struct {
-	Path     string    `json:"path"`
-	Method   string    `json:"method"`
-	Summary  string    `json:"summary"`
-	Content  string    `json:"content"`
-	Request  refObject `json:"request"`
-	Response refObject `json:"response"`
+type ApiPath struct {
+	Path        string    `json:"path"`
+	Method      string    `json:"method"`
+	ServiceName string    `json:"-"`
+	Operator    string    `json:"operator"` //cqrs 操作类型  command query
+	Summary     string    `json:"summary"`
+	Content     string    `json:"content"`
+	Request     RefObject `json:"request"`
+	Response    RefObject `json:"response"`
 }
 
-func (p path) ParsePath() (string, string, string) {
+func (p ApiPath) ParsePath() (string, string, string) {
 	splits := strings.Split(p.Path, "/")
 	protcolName := splits[len(splits)-1]
+	if p.ServiceName != "" {
+		protcolName = p.ServiceName
+	}
 	RequestProtocol := common.UpperFirstCase(protcolName) + "Request"
 	ResponseProtocol := common.UpperFirstCase(protcolName) + "Response"
 	return protcolName, RequestProtocol, ResponseProtocol
 }
 
-type refObject struct {
+type RefObject struct {
 	RefPath string `json:"ref"`
 }
